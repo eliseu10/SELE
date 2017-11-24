@@ -1,0 +1,1 @@
+slave.o: ../slave.c
