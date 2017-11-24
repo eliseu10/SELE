@@ -1,5 +1,7 @@
 #include <avr/io.h>
 
+//o rodrigo e gay
+
 #define	baud 57600  // baud rate
 #define baudgen ((F_CPU/(8*baud))-1)  //baud divider
 
