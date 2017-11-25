@@ -13,6 +13,10 @@
 #define STATEGREEN 2
 #define STATERED 3
 
+#define RED 1
+#define GREEN 2
+#define OFF 0
+#define ON 1
 
 int state_led;	//Estados dos LED's
 int state_comms;
@@ -45,20 +49,40 @@ void send_buffer(uint8_t buffer) {
 	// Espera que UDR0 esteja vazio
 	while ((UCSR0A & (1 << UDRE0)) == 0);
 
-	//ativar 9 bit para endereco
-	UCSR0B = (1 << RXB80);
-
 	UDR0 = buffer; // Envia para a porta serie
 }
 
-void init_leds(){
+void maquina_estados_comunicacao(){
+	//integer 8 bits
+	uint8_t buffer = 0;
 
+	//ativar 9 bit para endereco
+	UCSR0B = (1 << RXB80);
+
+	init_usart();
 }
 
-void init_
+/*
+ * PB0 - Led Green
+ * PB1 - Led Red
+ * PB3 - write/read selector
+ * PB4 - button in
+ * PB5 - button out
+ */
+void init_leds(){
+	DDRB = DDRB=0b00000111;
+}
 
-void maquina_estados_comunicacao(){
-
+void set_led(int color, int set){
+	if((RED == color) && (ON == set)){
+		PORTB = PORTB | ( 1 << 1);
+	}else if ((RED == color) && (OFF == set)) {
+		PORTB = PORTB & ~ ( 1 << 1);
+	}else if ((GREEN == color) && (ON == set)) {
+		PORTB = PORTB | ( 1 << 0);
+	}else if ((GREEN == color) && (OFF == set)) {
+		PORTB = PORTB & ~ ( 1 << 0);
+	}
 }
 
 void maquina_estados_led(){
@@ -87,14 +111,18 @@ void maquina_estados_led(){
 
 	if(STATEINITLED){
 		//Todos os leds apagados
+		set_led(GREEN,OFF);
+		set_led(RED,OFF);
 	}
 
 	if(STATEGREEN){
 		//Acende o Led Verde
+		set_led(GREEN,ON);
 	}
 
 	if(STATERED){
 		//Acende o led Vermelho
+		set_led(RED,ON);
 	}
 
 
@@ -110,14 +138,6 @@ int contador(int updown){
 }
 
 int main(int argc, char **argv) {
-	//inteiro de 8bits
-	uint8_t buffer = 0;
-
-	init_usart();
-
-
-	//Maquina de estados comunicação
-
 
 	return 0;
 }
