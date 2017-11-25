@@ -4,7 +4,7 @@
 #define baudgen ((F_CPU/(8*baud))-1)  //baud divider
 #define UPCOUNT 1
 #define DOWNCOUNT 2
-#define ERROCOUNT 9999
+#define ERRORCOUNT 9999
 
 /*
  * Estados para a maquina de estados dos LED's
@@ -13,13 +13,23 @@
 #define STATEGREEN 2
 #define STATERED 3
 
+/*
+ * Estados para a maquina de estados para comunicações
+ */
+#define INIT 0
+#define SENDCOUNT 1
+#define RECEIVESTATE 2
+
 #define RED 1
 #define GREEN 2
 #define OFF 0
 #define ON 1
+#define OUT 0
+#define IN 1
 
 int state_led;	//Estados dos LED's
 int state_comms;
+int master_state;
 int cont;
 
 void init_usart(void) {
@@ -45,11 +55,11 @@ void init_usart(void) {
  * este está disponível (bit UDRE0 de UCSR0A)
  *
  */
-void send_buffer(uint8_t buffer) {
+void send_byte(uint8_t byte) {
 	// Espera que UDR0 esteja vazio
 	while ((UCSR0A & (1 << UDRE0)) == 0);
 
-	UDR0 = buffer; // Envia para a porta serie
+	UDR0 = byte; // Envia para a porta serie
 }
 
 void maquina_estados_comunicacao(){
@@ -58,6 +68,18 @@ void maquina_estados_comunicacao(){
 
 	//ativar 9 bit para endereco
 	UCSR0B = (1 << RXB80);
+
+	switch (state_comms) {
+		case INIT:
+
+			break;
+		case SENDCOUNT:
+
+			break;
+		case RECEIVESTATE:
+
+			break;
+	}
 
 	init_usart();
 }
@@ -69,10 +91,15 @@ void maquina_estados_comunicacao(){
  * PB4 - button in
  * PB5 - button out
  */
-void init_leds(){
+void init_io(){
 	DDRB = DDRB=0b00000111;
+
+	//set pull-up resistors
+	PORTB = PORTB | (1<<4);
+	PORTB = PORTB | (1<<5);
 }
 
+//tested and working
 void set_led(int color, int set){
 	if((RED == color) && (ON == set)){
 		PORTB = PORTB | ( 1 << 1);
@@ -85,24 +112,40 @@ void set_led(int color, int set){
 	}
 }
 
+/*
+ * Botoes ainda nao estao a funcionar
+ * acho que devemos por resistencia de pull-up
+ */
+int check_button(int direction){
+	if(IN == direction){
+		if(!(PINB & (1<<4)))
+			return ON;
+	}else if (OUT == direction) {
+		if(!(PINB & (1<<5)))
+			return ON;
+	}
+	return OFF;
+}
+
+
 void maquina_estados_led(){
 	switch(state_led){
 	case STATEINITLED:
-		if(change_to_green)
+		if(master_state == GREEN)
 			state_led = STATEGREEN;
-		else if (change_to_red)
+		else if (master_state == RED)
 			state_led = STATERED;
 		else
 			state_led = STATEINITLED;
 		break;
 	case STATEGREEN:
-		if(change_to_red)
+		if(master_state == RED)
 			state_led = STATERED;
 		else
 			state_led = STATEGREEN;
 		break;
 	case STATERED:
-		if(change_to_green)
+		if(master_state == GREEN)
 			state_led = STATEGREEN;
 		else
 			state_led = STATERED;
@@ -134,11 +177,18 @@ int contador(int updown){
 	else if(DOWNCOUNT)
 		return cont--;
 	else
-		return ERROCOUNT; //erro
+		return ERRORCOUNT; //erro
 }
 
 int main(int argc, char **argv) {
+	init_io();
+	set_led(RED,OFF);
+	set_led(GREEN,OFF);
+	while(1){
 
+
+
+	}
 	return 0;
 }
 
