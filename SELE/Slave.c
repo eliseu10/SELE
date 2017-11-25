@@ -21,6 +21,8 @@
 #define RECEIVESTATE 2
 
 #define SLAVEADDR 0xAA
+#define GREENCODE 0x01
+#define REDCODE 0x02
 
 #define RED 1
 #define GREEN 2
@@ -33,6 +35,7 @@
 
 int state_led;	//Estados dos LED's
 int state_comms;
+int state_counter;
 int master_state;
 uint8_t cont;
 
@@ -86,7 +89,10 @@ int check_addr(uint8_t byte){
 }
 
 void check_master_byte(uint8_t byte){
-
+	if(GREENCODE == byte)
+		master_state = GREEN;
+	else if(GREENCODE == byte)
+		master_state = RED;
 }
 
 /*
@@ -140,8 +146,8 @@ void init_io(){
 	DDRB = DDRB=0b00000111;
 
 	//set pull-up resistors
+	PORTB = PORTB | (1<<3);
 	PORTB = PORTB | (1<<4);
-	PORTB = PORTB | (1<<5);
 }
 
 //tested and working
@@ -149,11 +155,11 @@ void set_led(int color, int set){
 	if((RED == color) && (ON == set)){
 		PORTB = PORTB | ( 1 << 1);
 	}else if ((RED == color) && (OFF == set)) {
-		PORTB = PORTB & ~ ( 1 << 1);
+		PORTB = PORTB & ~(1 << 1);
 	}else if ((GREEN == color) && (ON == set)) {
 		PORTB = PORTB | ( 1 << 0);
 	}else if ((GREEN == color) && (OFF == set)) {
-		PORTB = PORTB & ~ ( 1 << 0);
+		PORTB = PORTB & ~(1 << 0);
 	}
 }
 
@@ -163,10 +169,10 @@ void set_led(int color, int set){
  */
 int check_button(int direction){
 	if(IN == direction){
-		if(!(PINB & (1<<4)))
+		if(!(PINB & (1<<3)))
 			return ON;
 	}else if (OUT == direction) {
-		if(!(PINB & (1<<5)))
+		if(!(PINB & (1<<4)))
 			return ON;
 	}
 	return OFF;
@@ -212,7 +218,6 @@ void maquina_estados_led(){
 		set_led(RED,ON);
 	}
 
-
 }
 
 int contador(int updown){
@@ -224,12 +229,21 @@ int contador(int updown){
 		return ERRORCOUNT; //erro
 }
 
+void maquina_estados_contador(){
+	if(check_button(IN))
+		contador(UPCOUNT);
+	if(check_button(OUT))
+		contador(DOWNCOUNT);
+}
+
 int main(int argc, char **argv) {
 	init_usart();
 	init_io();
 
 	while(1){
-
+		maquina_estados_comunicacao();
+		maquina_estados_led();
+		maquina_estados_contador();
 	}
 	return 0;
 }
