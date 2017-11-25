@@ -20,17 +20,21 @@
 #define SENDCOUNT 1
 #define RECEIVESTATE 2
 
+#define SLAVEADDR 0xAA
+
 #define RED 1
 #define GREEN 2
 #define OFF 0
 #define ON 1
 #define OUT 0
 #define IN 1
+#define READ 0
+#define WRITE 1
 
 int state_led;	//Estados dos LED's
 int state_comms;
 int master_state;
-int cont;
+uint8_t cont;
 
 void init_usart(void) {
 	// Definir baudrate
@@ -62,26 +66,67 @@ void send_byte(uint8_t byte) {
 	UDR0 = byte; // Envia para a porta serie
 }
 
+uint8_t get_byte(){
+	// Espera que RXC0 tenha la alguma coisa
+	while ((UCSR0A & (1 << RXC0)) == 0);
+
+	return UDR0;
+}
+
+/*
+ * TXB80 - configure that data or addr
+ * RXB80 - read 9 bit of data
+ */
+int check_addr(uint8_t byte){
+	//(verifica se e um addr) and (corresponde ao slave)
+	if((UCSR0B & (1 << RXB80)) && (byte == SLAVEADDR))
+		return 1;
+	else
+		return 0;
+}
+
+void check_master_byte(uint8_t byte){
+
+}
+
+/*
+ * Controla pino responsável por indicar a drive(MAX485)
+ * se vai receber ou enviar
+ */
+void set_driver(int operation){
+	if(READ == operation)
+		PORTB = PORTB | ( 1 << 3);
+	else if(WRITE == operation)
+		PORTB = PORTB & ~ ( 1 << 1);
+}
+
 void maquina_estados_comunicacao(){
 	//integer 8 bits
-	uint8_t buffer = 0;
-
-	//ativar 9 bit para endereco
-	UCSR0B = (1 << RXB80);
+	uint8_t byte = 0;
 
 	switch (state_comms) {
-		case INIT:
 
-			break;
-		case SENDCOUNT:
+	case INIT:
+		set_driver(READ);
+		byte = get_byte();
+		if (check_addr(byte))
+			state_comms = SENDCOUNT;
+		break;
 
-			break;
-		case RECEIVESTATE:
+	case SENDCOUNT:
+		set_driver(WRITE);
+		send_byte(cont);
+		state_comms = RECEIVESTATE;
+		break;
 
-			break;
+	case RECEIVESTATE:
+		set_driver(READ);
+		byte = get_byte();
+		check_master_byte(byte);
+		state_comms = INIT;
+		break;
 	}
 
-	init_usart();
 }
 
 /*
@@ -127,43 +172,42 @@ int check_button(int direction){
 	return OFF;
 }
 
-
 void maquina_estados_led(){
 	switch(state_led){
 	case STATEINITLED:
-		if(master_state == GREEN)
+		if(GREEN == master_state)
 			state_led = STATEGREEN;
-		else if (master_state == RED)
+		else if (RED == master_state)
 			state_led = STATERED;
 		else
 			state_led = STATEINITLED;
 		break;
 	case STATEGREEN:
-		if(master_state == RED)
+		if(RED == master_state)
 			state_led = STATERED;
 		else
 			state_led = STATEGREEN;
 		break;
 	case STATERED:
-		if(master_state == GREEN)
+		if(GREEN == master_state)
 			state_led = STATEGREEN;
 		else
 			state_led = STATERED;
 			break;
 	}
 
-	if(STATEINITLED){
+	if(STATEINITLED == state_led){
 		//Todos os leds apagados
 		set_led(GREEN,OFF);
 		set_led(RED,OFF);
 	}
 
-	if(STATEGREEN){
+	if(STATEGREEN == state_led){
 		//Acende o Led Verde
 		set_led(GREEN,ON);
 	}
 
-	if(STATERED){
+	if(STATERED == state_led){
 		//Acende o led Vermelho
 		set_led(RED,ON);
 	}
@@ -181,15 +225,11 @@ int contador(int updown){
 }
 
 int main(int argc, char **argv) {
+	init_usart();
 	init_io();
-	set_led(RED,OFF);
-	set_led(GREEN,OFF);
+
 	while(1){
-
-
 
 	}
 	return 0;
 }
-
-

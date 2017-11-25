@@ -8,8 +8,9 @@ Archive member included to satisfy reference by file (symbol)
 Distribuindo símbolos comuns
 Símbolos comuns do tamanho do ficheiro
 
+master_state        0x2               ./Slave.o
 state_comms         0x2               ./Slave.o
-cont                0x2               ./Slave.o
+cont                0x1               ./Slave.o
 state_led           0x2               ./Slave.o
 
 Configuração de Memória
@@ -133,7 +134,7 @@ END GROUP
 .rela.plt
  *(.rela.plt)
 
-.text           0x00000000      0x140
+.text           0x00000000      0x258
  *(.vectors)
  .vectors       0x00000000       0x68 /usr/lib/gcc/avr/4.9.2/../../../avr/lib/avr5/crtatmega328p.o
                 0x00000000                __vectors
@@ -224,53 +225,71 @@ END GROUP
  .text.init_usart
                 0x00000090       0x1e ./Slave.o
                 0x00000090                init_usart
- .text.send_buffer
+ .text.send_byte
                 0x000000ae        0xe ./Slave.o
-                0x000000ae                send_buffer
+                0x000000ae                send_byte
+ .text.get_byte
+                0x000000bc        0xe ./Slave.o
+                0x000000bc                get_byte
+ .text.check_addr
+                0x000000ca       0x1c ./Slave.o
+                0x000000ca                check_addr
+ .text.check_master_byte
+                0x000000e6        0x2 ./Slave.o
+                0x000000e6                check_master_byte
+ .text.set_driver
+                0x000000e8       0x10 ./Slave.o
+                0x000000e8                set_driver
  .text.maquina_estados_comunicacao
-                0x000000bc        0xa ./Slave.o
-                0x000000bc                maquina_estados_comunicacao
- .text.init_io  0x000000c6        0xc ./Slave.o
-                0x000000c6                init_io
- .text.set_led  0x000000d2       0x2e ./Slave.o
-                0x000000d2                set_led
+                0x000000f8       0x60 ./Slave.o
+                0x000000f8                maquina_estados_comunicacao
+ .text.init_io  0x00000158        0xc ./Slave.o
+                0x00000158                init_io
+ .text.set_led  0x00000164       0x2e ./Slave.o
+                0x00000164                set_led
  .text.check_button
-                0x00000100       0x22 ./Slave.o
-                0x00000100                check_button
+                0x00000192       0x28 ./Slave.o
+                0x00000192                check_button
+ .text.maquina_estados_led
+                0x000001ba       0x80 ./Slave.o
+                0x000001ba                maquina_estados_led
+ .text.contador
+                0x0000023a       0x10 ./Slave.o
+                0x0000023a                contador
  .text.startup.main
-                0x00000122       0x1a ./Slave.o
-                0x00000122                main
+                0x0000024a        0xa ./Slave.o
+                0x0000024a                main
  .text.libgcc.mul
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
  .text.libgcc.div
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
- .text.libgcc   0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
+ .text.libgcc   0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
  .text.libgcc.prologue
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
  .text.libgcc.builtins
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
  .text.libgcc.fmul
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
  .text.libgcc.fixed
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
  .text.libgcc.mul
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
  .text.libgcc.div
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
- .text.libgcc   0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
+ .text.libgcc   0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
  .text.libgcc.prologue
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
  .text.libgcc.builtins
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
  .text.libgcc.fmul
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
  .text.libgcc.fixed
-                0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
-                0x0000013c                . = ALIGN (0x2)
+                0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
+                0x00000254                . = ALIGN (0x2)
  *(.fini9)
- .fini9         0x0000013c        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
-                0x0000013c                exit
-                0x0000013c                _exit
+ .fini9         0x00000254        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
+                0x00000254                exit
+                0x00000254                _exit
  *(.fini9)
  *(.fini8)
  *(.fini8)
@@ -289,11 +308,11 @@ END GROUP
  *(.fini1)
  *(.fini1)
  *(.fini0)
- .fini0         0x0000013c        0x4 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
+ .fini0         0x00000254        0x4 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_exit.o)
  *(.fini0)
-                0x00000140                _etext = .
+                0x00000258                _etext = .
 
-.data           0x00800100        0x0 carregar endereço 0x00000140
+.data           0x00800100        0x0 carregar endereço 0x00000258
                 [!provide]                PROVIDE (__data_start, .)
  *(.data)
  .data          0x00800100        0x0 /usr/lib/gcc/avr/4.9.2/../../../avr/lib/avr5/crtatmega328p.o
@@ -308,7 +327,7 @@ END GROUP
                 0x00800100                _edata = .
                 [!provide]                PROVIDE (__data_end, .)
 
-.bss            0x00800100        0x6
+.bss            0x00800100        0x7
                 0x00800100                PROVIDE (__bss_start, .)
  *(.bss)
  .bss           0x00800100        0x0 /usr/lib/gcc/avr/4.9.2/../../../avr/lib/avr5/crtatmega328p.o
@@ -317,19 +336,20 @@ END GROUP
  .bss           0x00800100        0x0 /usr/lib/gcc/avr/4.9.2/avr5/libgcc.a(_clear_bss.o)
  *(.bss*)
  *(COMMON)
- COMMON         0x00800100        0x6 ./Slave.o
-                0x00800100                state_comms
-                0x00800102                cont
-                0x00800104                state_led
-                0x00800106                PROVIDE (__bss_end, .)
-                0x00000140                __data_load_start = LOADADDR (.data)
-                0x00000140                __data_load_end = (__data_load_start + SIZEOF (.data))
+ COMMON         0x00800100        0x7 ./Slave.o
+                0x00800100                master_state
+                0x00800102                state_comms
+                0x00800104                cont
+                0x00800105                state_led
+                0x00800107                PROVIDE (__bss_end, .)
+                0x00000258                __data_load_start = LOADADDR (.data)
+                0x00000258                __data_load_end = (__data_load_start + SIZEOF (.data))
 
-.noinit         0x00800106        0x0
+.noinit         0x00800107        0x0
                 [!provide]                PROVIDE (__noinit_start, .)
  *(.noinit*)
                 [!provide]                PROVIDE (__noinit_end, .)
-                0x00800106                _end = .
+                0x00800107                _end = .
                 [!provide]                PROVIDE (__heap_start, .)
 
 .eeprom         0x00810000        0x0
