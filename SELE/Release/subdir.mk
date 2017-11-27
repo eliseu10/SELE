@@ -4,12 +4,15 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../RS485.c \
 ../Slave.c 
 
 OBJS += \
+./RS485.o \
 ./Slave.o 
 
 C_DEPS += \
+./RS485.d \
 ./Slave.d 
 
 
