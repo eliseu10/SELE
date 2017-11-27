@@ -32,12 +32,13 @@
 #define IN 1
 #define READ 0
 #define WRITE 1
+#define PARKFULL 1
 
-int state_led;	//Estados dos LED's
-int state_comms;
-int state_counter;
-int master_state;
-uint8_t cont;
+int state_led = STATEINITLED;	//Estados dos LED's
+int state_comms = INIT;
+int state_counter = INIT;
+int master_state = REDCODE;
+uint8_t cont = 0;
 
 void init_usart(void) {
 	// Definir baudrate
@@ -91,7 +92,7 @@ int check_addr(uint8_t byte){
 void check_master_byte(uint8_t byte){
 	if(GREENCODE == byte)
 		master_state = GREEN;
-	else if(GREENCODE == byte)
+	else if(REDCODE == byte)
 		master_state = RED;
 }
 
@@ -164,8 +165,7 @@ void set_led(int color, int set){
 }
 
 /*
- * Botoes ainda nao estao a funcionar
- * acho que devemos por resistencia de pull-up
+ * Verificada e a funicionar
  */
 int check_button(int direction){
 	if(IN == direction){
@@ -230,10 +230,22 @@ int contador(int updown){
 }
 
 void maquina_estados_contador(){
-	if(check_button(IN))
-		contador(UPCOUNT);
-	if(check_button(OUT))
-		contador(DOWNCOUNT);
+	switch (state_counter) {
+		case INIT:
+			if(check_button(IN))
+				contador(UPCOUNT);
+			if(check_button(OUT))
+				contador(DOWNCOUNT);
+			if(RED == master_state)
+				state_counter = PARKFULL;
+			break;
+		case PARKFULL:
+			if(GREEN == master_state)
+				state_counter = INIT;
+			break;
+
+	}
+
 }
 
 int main(int argc, char **argv) {
@@ -241,6 +253,13 @@ int main(int argc, char **argv) {
 	init_io();
 
 	while(1){
+		/*
+		if(check_button(OUT) == ON){
+			set_led(GREEN,ON);
+		}
+		if(check_button(IN) == ON){
+			set_led(GREEN,OFF);
+		}*/
 		maquina_estados_comunicacao();
 		maquina_estados_led();
 		maquina_estados_contador();
