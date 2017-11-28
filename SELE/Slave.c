@@ -1,4 +1,5 @@
 #include "RS485.h"
+#include <util/delay.h>
 
 
 #define UPCOUNT 1
@@ -35,7 +36,7 @@
 int state_led = STATEINITLED;	//Estados dos LED's
 int state_comms = STATEINITCOMM;
 int master_state = RED;
-int cont = 0;
+uint8_t cont = 0x05;
 
 
 /*
@@ -46,7 +47,7 @@ int cont = 0;
  * PB5 - button out
  */
 void init_io(){
-	DDRB = DDRB=0b00000111;
+	DDRB = 0b00000111;
 
 	//set pull-up resistors
 	PORTB = PORTB | (1<<3);
@@ -86,32 +87,30 @@ void maquina_estados_comunicacao(){
 	switch (state_comms) {
 	case STATEINITCOMM:
 		set_driver(READ);
-		set_led(RED,ON);
+
 		byte = get_byte();
-		set_led(GREEN,ON);
-		if (check_addr(byte))
+
+		if (check_addr(byte)){
+			set_led(GREEN,ON);
 			state_comms = SENDCOUNT;
+		}
 		break;
 
 	case SENDCOUNT:
-
 		set_driver(WRITE);
+		_delay_us(5);
 		send_byte(cont);
 		state_comms = RECEIVESTATE;
 		break;
-
 	case RECEIVESTATE:
-
 		set_driver(READ);
 		byte = get_byte();
 		check_master_byte(byte);
+		set_led(RED,ON);
 		state_comms = STATEINITCOMM;
 
 		break;
 	}
-
-
-
 }
 
 
@@ -200,7 +199,9 @@ int main(int argc, char **argv) {
 		}
 		if(check_button(IN) == ON){
 			set_led(GREEN,OFF);
-		}*/
+		}
+		send_byte(0x12);
+		set_led(GREEN,ON);*/
 		maquina_estados_comunicacao();
 		//maquina_estados_led();
 		//maquina_estados_contador();
