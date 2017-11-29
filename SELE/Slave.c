@@ -36,7 +36,7 @@
 int state_led = STATEINITLED;	/* Estados dos LED's */
 int state_comms = STATEINITCOMM;
 int master_state = RED;
-uint8_t cont = 0x05;
+uint8_t cont = 0x07;
 
 
 /*
@@ -53,18 +53,6 @@ void init_io(void)
 	/* set pull-up resistors */
 	PORTB = PORTB | (1<<3);
 	PORTB = PORTB | (1<<4);
-}
-
-void check_master_byte(uint8_t byte)
-{
-	if(GREENCODE == byte)
-	{
-		master_state = GREEN;
-	}
-	else if(REDCODE == byte)
-	{
-		master_state = RED;
-	}
 }
 
 /* tested and working */
@@ -87,6 +75,24 @@ void set_led(int color, int set)
 		PORTB = PORTB & ~(1 << 0);
 	}
 }
+
+void check_master_byte(uint8_t byte)
+{
+	if(GREENCODE == byte)
+	{
+		master_state = GREEN;
+		set_led(GREEN,ON);
+		set_led(RED,OFF);
+	}
+	else if(REDCODE == byte)
+	{
+		master_state = RED;
+		set_led(RED,ON);
+		set_led(GREEN,OFF);
+	}
+}
+
+
 
 void maquina_estados_comunicacao(void)
 {
@@ -118,12 +124,13 @@ void maquina_estados_comunicacao(void)
 		set_driver(READ);
 		byte = get_byte();
 		check_master_byte(byte);
-		set_led(RED,ON);
+
 		state_comms = STATEINITCOMM;
+
 		break;
 
 	default:
-		state_led = STATEINITCOMM;
+		state_comms = STATEINITCOMM;
 		break;
 	}
 }
