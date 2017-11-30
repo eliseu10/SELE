@@ -51,7 +51,8 @@ char cont = 0;
  * PB4 - button in
  * PB5 - button out
  */
-void init_io(void) {
+void init_io(void)
+{
 
 	DDRB = 0b00000111; //colocar como saidas os pinos para o max e led's
 
@@ -72,7 +73,8 @@ void init_io(void) {
 	PORTD |= (1 << PD2);
 }
 
-void init_interrupts_buttons(void) {
+void init_interrupts_buttons(void)
+{
 
 	EICRA |= (1 << ISC11) | (1 << ISC10) | (1 << ISC01) | (1 << ISC00); /* set INT0 to trigger on RE */
 	EIMSK |= (1 << INT0);     /* Turns on INT0 */
@@ -83,14 +85,19 @@ void init_interrupts_buttons(void) {
 }
 
 /* Liga e desliga os led's */
-void set_led(int color, int set) {
-	if ((RED == color) && (ON == set)) {
+void set_led(int color, int set)
+{
+	if ((RED == color) && (ON == set))
+	{
 		PORTB = PORTB | (1 << 1);
-	} else if ((RED == color) && (OFF == set)) {
+	} else if ((RED == color) && (OFF == set))
+	{
 		PORTB = PORTB & ~(1 << 1);
-	} else if ((GREEN == color) && (ON == set)) {
+	} else if ((GREEN == color) && (ON == set))
+	{
 		PORTB = PORTB | (1 << 0);
-	} else if ((GREEN == color) && (OFF == set)) {
+	} else if ((GREEN == color) && (OFF == set))
+	{
 		PORTB = PORTB & ~(1 << 0);
 	}
 }
@@ -98,12 +105,15 @@ void set_led(int color, int set) {
 /*
  * Verificar se o mestre diz que pode entrar carros ou não e muda o semafero de acordo.
  */
-void check_master_state(char byte) {
-	if (GREENCODE == byte) {
+void check_master_state(char byte)
+{
+	if (GREENCODE == byte)
+	{
 		master_state = GREEN;
 		set_led(GREEN, ON);
 		set_led(RED, OFF);
-	} else if (REDCODE == byte) {
+	} else if (REDCODE == byte)
+	{
 		master_state = RED;
 		set_led(RED, ON);
 		set_led(GREEN, OFF);
@@ -113,6 +123,7 @@ void check_master_state(char byte) {
 }
 
 void state_machine_comunications(void) {
+
 	/* integer 8 bits */
 	char byte = 0;
 
@@ -123,7 +134,8 @@ void state_machine_comunications(void) {
 		set_driver(READ);
 		byte = get_byte();
 
-		if (check_addr(byte)) {
+		if (check_addr(byte))
+		{
 			state_comms = STATESENDCOUNT;
 		}
 		break;
@@ -276,15 +288,15 @@ void state_machine_led(void) {
 
 ISR (INT0_vect) {
 	cont--;
-	return;
-}
 
 ISR (INT1_vect) {
 	cont++;
-	return;
 }
 
-int main(int argc, char **argv) {
+
+
+ int main(int argc, char **argv)
+{
 	init_RS485();
 	init_io();
 	init_interrupts_buttons();
@@ -298,7 +310,8 @@ int main(int argc, char **argv) {
 	PORTB &= ~(1 << PB0);
 	PORTB &= ~(1 << PB1);
 
-	while (1) {
+
+	while (1){
 
 //		state_machine_comunications();
 //		state_machine_led();
