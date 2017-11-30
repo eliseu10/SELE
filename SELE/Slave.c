@@ -6,8 +6,11 @@
 #define DOWNCOUNT 2
 #define ERRORCOUNT 9999
 
-#define RED 1
-#define GREEN 2
+/*
+ * Led RED ou Green
+ */
+#define RED 0xFF
+#define GREEN 0xAA
 
 /*
  * Estados para a maquina de estados dos LED's
@@ -22,9 +25,10 @@
 #define STATEINITCOMM 0
 #define STATESENDCOUNT 1
 #define STATERECEIVESTATE 2
+#define STATESENDACK 5
 
 /*
- * Liga ou desliga led define
+ * Liga ou desliga led
  */
 #define OFF 0
 #define ON 1
@@ -37,7 +41,7 @@
 
 int state_led = STATEINITLED; /* Estados dos LED's */
 int state_comms = STATEINITCOMM;
-int master_state = RED;
+int master_state = STATEINITLED;
 char cont = 0;
 
 /*
@@ -52,28 +56,29 @@ void init_io(void) {
 	DDRB = 0b00000111; //colocar como saidas os pinos para o max e led's
 
 
-	/* set pull-up resistors */
-//	PORTB = PORTB | (1 << 3);
-//	PORTB = PORTB | (1 << 4);
+	/*Pinos como saidas PD4 e PD5 para os mosfet*/
+	DDRD |= (1 << PD4) | (1 << PD5);
 
-	DDRD &= ~(1 << PD2);     // PD2 e PD3 inputs
+	/* set pull-up resistors */
+	//	PORTB = PORTB | (1 << 3);
+	//	PORTB = PORTB | (1 << 4);
+
+	/* PD2 e PD3 inputs para os botões*/
+	DDRD &= ~(1 << PD2);
 	DDRD &= ~(1 << PD3);
 
-
-	PORTD |= (1 << PD3);		//
-	PORTD |= (1 << PD2);		// turn On the Pull-up
-	// PD2 is now an input with pull-up enabled
+	/* turn On the Pull-up */
+	PORTD |= (1 << PD3);
+	PORTD |= (1 << PD2);
 }
 
 void init_interrupts_buttons(void) {
 
-	EICRA |= (1 << ISC11) | (1 << ISC10) | (1 << ISC01) | (1 << ISC00);    // set INT0 to trigger on RE
-	EIMSK |= (1 << INT0);     // Turns on INT0
-	EIMSK |= (1 << INT1);     // Turns on INT1
-	// turn on interrupts
+	EICRA |= (1 << ISC11) | (1 << ISC10) | (1 << ISC01) | (1 << ISC00); /* set INT0 to trigger on RE */
+	EIMSK |= (1 << INT0);     /* Turns on INT0 */
+	EIMSK |= (1 << INT1);     /* Turns on INT1 */
 
 	sei();
-
 
 }
 
@@ -102,14 +107,17 @@ void check_master_state(char byte) {
 		master_state = RED;
 		set_led(RED, ON);
 		set_led(GREEN, OFF);
+	} else {
+		master_state = STATEINITLED;
 	}
 }
 
-void maquina_estados_comunicacao(void) {
+void state_machine_comunications(void) {
 	/* integer 8 bits */
 	char byte = 0;
 
 	switch (state_comms) {
+
 	case STATEINITCOMM:
 
 		set_driver(READ);
@@ -133,9 +141,21 @@ void maquina_estados_comunicacao(void) {
 
 		set_driver(READ);
 		byte = get_byte();
+
 		check_master_state(byte);
 
+		state_comms = STATESENDACK;
+		break;
+
+	case STATESENDACK:
+
+		set_driver(WRITE);
+		_delay_us(5);
+		send_byte(master_state);
+		set_driver(READ);
+
 		state_comms = STATEINITCOMM;
+
 		break;
 
 	default:
@@ -147,75 +167,62 @@ void maquina_estados_comunicacao(void) {
 
 }
 
-
-
 /*
- void maquina_estados_led(void)
- {
- switch (state_led)
- {
- case STATEINITLED:
- if (GREEN == master_state)
- {
- state_led = STATEGREEN;
- }
- else if (RED == master_state)
- {
- state_led = STATERED;
- }
- else
- {
- state_led = STATEINITLED;
- }
- break;
- case STATEGREEN:
- if (RED == master_state)
- {
- state_led = STATERED;
- }
- else
- {
- state_led = STATEGREEN;
- }
- break;
+void state_machine_led(void) {
+	switch (state_led) {
+	case STATEINITLED:
 
- case STATERED:
- if (GREEN == master_state)
- {
- state_led = STATEGREEN;
- }
- else
- {
- state_led = STATERED;
- }
- break;
+			if (GREEN == master_state) {
+				state_led = STATEGREEN;
+			} else if (RED == master_state) {
+				state_led = STATERED;
+			} else {
+				state_led = STATEINITLED;
+			}
+			break;
 
- default:
- state_led = STATEINITLED;
- break;
- }
+		case STATEGREEN:
 
- if(STATEINITLED == state_led)
- {
- //Todos os leds apagados
- set_led(GREEN,OFF);
- set_led(RED,OFF);
- }
+			if (RED == master_state) {
+				state_led = STATERED;
+			} else {
+				state_led = STATEGREEN;
+			}
+			break;
 
- if(STATEGREEN == state_led)
- {
- // Acende o Led Verde
- set_led(GREEN,ON);
- }
+		case STATERED:
+			if (GREEN == master_state) {
+				state_led = STATEGREEN;
+			} else {
+				state_led = STATERED;
+			}
+			break;
 
- if(STATERED == state_led)
- {
- // Acende o led Vermelho
- set_led(RED,ON);
- }
+		default:
 
- }
- */
+			state_led = STATEINITLED;
+			break;
+	}
+
+	if (STATEINITLED == state_led) {
+		//Todos os leds apagados
+		set_led(GREEN, OFF);
+		set_led(RED, OFF);
+	}
+
+	if (STATEGREEN == state_led) {
+		// Acende o Led Verde
+		set_led(GREEN, ON);
+		set_led(RED, OFF);
+	}
+
+	if (STATERED == state_led) {
+		// Acende o led Vermelho
+		set_led(RED, ON);
+		set_led(GREEN, OFF);
+	}
+}
+*/
 
 /*int check_button(int direction)
  {
@@ -266,19 +273,14 @@ void maquina_estados_comunicacao(void) {
 /*
  * Contador de carros
  */
+
 ISR (INT0_vect) {
-	cont++;
-	set_led(GREEN, ON);
-	_delay_ms(500);
-	set_led(GREEN, OFF);
+	cont--;
 	return;
 }
 
 ISR (INT1_vect) {
-	cont--;
-	set_led(RED, ON);
-	_delay_ms(500);
-	set_led(RED, OFF);
+	cont++;
 	return;
 }
 
@@ -287,29 +289,25 @@ int main(int argc, char **argv) {
 	init_io();
 	init_interrupts_buttons();
 
+
+	/* PD2 e PD3 entradas para teste led's*/
+	DDRB &= ~(1 << PB0);
+	DDRB &= ~(1 << PB1);
+
+	/* turn OFF the Pull-up para os led's*/
+	PORTB &= ~(1 << PB0);
+	PORTB &= ~(1 << PB1);
+
 	while (1) {
-		/*
-		 if(check_button(OUT) == ON){
-		 set_led(GREEN,ON);
-		 }
-		 if(check_button(IN) == ON){
-		 set_led(GREEN,OFF);
-		 }
-		 send_byte(0x12);
-		 set_led(GREEN,ON);*/
 
-//		set_led(GREEN,ON);
-//		_delay_ms(500);
-//		set_led(RED,ON);
-//		_delay_ms(500);
-//		set_led(GREEN,OFF);
-//		_delay_ms(500);
-//		set_led(RED,OFF);
-//		_delay_ms(500);
+//		state_machine_comunications();
+//		state_machine_led();
 
-	//	maquina_estados_comunicacao();
-		//maquina_estados_led();
-		//maquina_estados_contador();
+		PORTD &= ~(1 << PD4) & ~(1 << PD5);
+		_delay_ms(500);
+		PORTD |= (1 << PD4) | (1 << PD5);
+		_delay_ms(500);
+
 	}
 	return 0;
 }

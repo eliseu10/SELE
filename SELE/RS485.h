@@ -14,7 +14,6 @@
 #define	baud 57600  /* baud rate */
 #define baudgen ((F_CPU/(16*baud))-1)  /* baud divider */
 
-
 #define READ 0
 #define WRITE 1
 
@@ -22,19 +21,13 @@
 #define GREENCODE 0xAA
 #define REDCODE 0xFF
 
-
-
 void init_RS485(void);
-
 
 void send_byte(uint8_t byte);
 
-
 uint8_t get_byte(void);
 
-
 int check_addr(uint8_t byte);
-
 
 void set_driver(int operation);
 
