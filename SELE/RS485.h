@@ -14,8 +14,7 @@
 #define	baud 57600  /* baud rate */
 #define baudgen ((F_CPU/(16*baud))-1)  /* baud divider */
 
-#define RED 1
-#define GREEN 2
+
 #define READ 0
 #define WRITE 1
 
