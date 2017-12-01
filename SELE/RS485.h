@@ -9,6 +9,7 @@
 #define RS485_H_
 
 #include <avr/io.h>
+#include <avr/delay.h>
 
 #define F_CPU 16000000UL
 #define	baud 57600  /* baud rate */
@@ -31,7 +32,7 @@ int check_addr(uint8_t byte);
 
 void set_driver(int operation);
 
-void is_adddr(void);
+uint8_t is_addr(void);
 
 #endif /* RS485_H_ */
 

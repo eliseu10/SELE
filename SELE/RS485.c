@@ -37,6 +37,10 @@ void init_RS485(void) {
  * este está disponível (bit UDRE0 de UCSR0A)
  */
 void send_byte(uint8_t byte) {
+
+	set_driver(WRITE);
+	_delay_us(30);
+
 	/* Espera que UDR0 esteja vazio */
 	while ((UCSR0A & (1 << UDRE0)) == 0);
 
@@ -47,9 +51,16 @@ void send_byte(uint8_t byte) {
 
 	/* Utilizar TXC0 para esperar que seja tudo enviado */
 	while ((UCSR0A & (1 << TXC0)) == 0);
+
+	set_driver(READ);
+
+	return;
 }
 
 uint8_t get_byte(void) {
+
+	set_driver(READ);
+
 	/* Espera que RXC0 tenha la alguma coisa */
 	while ((UCSR0A & (1 << RXC0)) == 0);
 

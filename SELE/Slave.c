@@ -39,10 +39,11 @@
 #define OUT 0
 #define IN 1
 
-int state_led = STATEINITLED; /* Estados dos LED's */
-int state_comms = STATEINITCOMM;
-int master_state = STATEINITLED;
-uint8_t cont = 0;
+//int state_led = STATEINITLED; /* Estados dos LED's */
+uint8_t volatile state_comms = STATEINITCOMM;
+uint8_t volatile master_state = STATEINITLED;
+uint8_t volatile cont = 0;
+
 
 /*
  * PB0 - Led Green
@@ -77,17 +78,7 @@ void init_io(void)
 	PORTD |= (1 << PD2);
 }
 
-void init_interrupts_buttons(void)
-{
 
-	EICRA |= (1 << ISC11) | (1 << ISC01); /* set INT0 and INT1 to trigger on FE */
-	EICRA &= ~(1 << ISC10) & ~(1 << ISC00);
-	EIMSK |= (1 << INT0);     /* Turns on INT0 */
-	EIMSK |= (1 << INT1);     /* Turns on INT1 */
-
-	sei();
-
-}
 
 /* Liga e desliga os led's */
 void set_led(int color, int set)
@@ -110,7 +101,7 @@ void set_led(int color, int set)
 /*
  * Verificar se o mestre diz que pode entrar carros ou não e muda o semafero de acordo.
  */
-void check_master_state(char byte)
+void check_master_state(uint8_t byte)
 {
 	if (GREENCODE == byte)
 	{
@@ -123,20 +114,18 @@ void check_master_state(char byte)
 		set_led(RED, ON);
 		set_led(GREEN, OFF);
 	} else {
-		master_state = STATEINITLED;
+		master_state = 0xA0;
 	}
 }
 
 void state_machine_comunications(void) {
 
 	/* integer 8 bits */
-	char byte = 0;
+	uint8_t byte = 0;
 
 	switch (state_comms) {
 
 	case STATEINITCOMM:
-
-		set_driver(READ);
 
 		if(is_addr()){
 			byte = get_byte();
@@ -150,8 +139,6 @@ void state_machine_comunications(void) {
 
 	case STATESENDCOUNT:
 
-		set_driver(WRITE);
-		_delay_us(5);
 		send_byte(cont);
 
 		state_comms = STATERECEIVESTATE;
@@ -159,7 +146,6 @@ void state_machine_comunications(void) {
 
 	case STATERECEIVESTATE:
 
-		set_driver(READ);
 		byte = get_byte();
 
 		check_master_state(byte);
@@ -169,10 +155,7 @@ void state_machine_comunications(void) {
 
 	case STATESENDACK:
 
-		set_driver(WRITE);
-		_delay_us(5);
 		send_byte(master_state);
-		set_driver(READ);
 
 		state_comms = STATEINITCOMM;
 
@@ -244,65 +227,40 @@ void state_machine_led(void) {
 }
 */
 
-/*int check_button(int direction)
- {
- if(IN == direction)
- {
- if(!(PINB & (1<<3)))
- {
- return ON;
- }
- }
- else if (OUT == direction)
- {
- if(!(PINB & (1<<4)))
- {
- return ON;
- }
+/*int check_button(int direction) {
+	if (IN == direction) {
+		if (!(PINB & (1 << 3))) {
+			return ON;
+		}
+	} else if (OUT == direction) {
+		if (!(PINB & (1 << 4))) {
+			return ON;
+		}
 
- }
- return OFF;
- }
-
- int contador(int updown)
- {
- if(UPCOUNT)
- {
- return cont++;
- }
- else if(DOWNCOUNT)
- {
- return cont--;
- }
- else
- {
- return ERRORCOUNT;  erro
- }
- }
-
- void maquina_estados_contador(void)
- {
-
- if (check_button(IN))
- contador(UPCOUNT);
- if (check_button(OUT))
- contador(DOWNCOUNT);
-
- }*/
-
-/*
- * Contador de carros
- */
-
-ISR (INT0_vect) {
-	cont++;
-	return;
+	}
+	return OFF;
 }
 
-ISR (INT1_vect) {
-	cont--;
-	return;
+int contador(int updown) {
+	if (UPCOUNT) {
+		return cont++;
+	} else if (DOWNCOUNT) {
+		return cont--;
+	} else {
+		return ERRORCOUNT;
+		erro
+	}
 }
+
+void maquina_estados_contador(void) {
+
+	if (check_button(IN))
+		contador(UPCOUNT);
+	if (check_button(OUT))
+		contador(DOWNCOUNT);
+
+}*/
+
 
 void test_led(void){
 
@@ -323,15 +281,59 @@ void test_led(void){
 
 }
 
+void init_interrupts_buttons(void)
+{
+
+	/* set INT0 and INT1 to trigger on FE */
+	EICRA |= (0b10 << ISC00);
+	EICRA |= (0b10 << ISC10);
+
+	EIMSK |= (1 << INT0);     /* Turns on INT0 */
+	EIMSK |= (1 << INT1);     /* Turns on INT1 */
+
+	sei();
+
+}
+
+/*
+ * Contador de carros
+ */
+
+/* Entrada */
+ISR (INT0_vect) {
+	cont++;
+
+/*	set_led(GREEN, ON);
+	_delay_ms(500);
+	set_led(GREEN, OFF);*/
+
+	return;
+}
+
+/* Saidas */
+ISR (INT1_vect) {
+	cont--;
+
+/*	set_led(RED, ON);
+	_delay_ms(500);
+	set_led(RED, OFF);*/
+
+	return;
+}
+
+
  int main(int argc, char **argv){
 
 	init_RS485();
 	init_io();
 	init_interrupts_buttons();
 
-	while (1){
 
-//		state_machine_comunications();
+
+	while (1) {
+
+
+		state_machine_comunications();
 //		state_machine_led();
 
 	}
