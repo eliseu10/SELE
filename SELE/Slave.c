@@ -296,13 +296,11 @@ void state_machine_led(void) {
 
 ISR (INT0_vect) {
 	cont++;
-	send_byte(cont);
 	return;
 }
 
 ISR (INT1_vect) {
 	cont--;
-	send_byte(cont);
 	return;
 }
 
