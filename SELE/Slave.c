@@ -26,6 +26,7 @@
 #define STATESENDCOUNT 1
 #define STATERECEIVESTATE 2
 #define STATESENDACK 5
+#define STATESAFE 3
 
 /*
  * Liga ou desliga led
@@ -43,6 +44,32 @@ int state_led = STATEINITLED; /* Estados dos LED's */
 int state_comms = STATEINITCOMM;
 int master_state = STATEINITLED;
 char cont = 0;
+
+volatile int watchdog=0;
+
+void init_io(void);
+void init_interrupts_buttons(void);
+void init_timer(void);
+void set_led(int color, int set);
+void check_master_state(char byte);
+void state_machine_comunications(void);
+
+/*
+ * Configurar watch dog timer
+ * Caso passem mais de 5 segundos sem comunicar
+ * liga watch dog e passa para rescue_mode
+ */
+ISR(TIMER1_COMPA_vect){
+	TCNT1=0;
+	watchdog++;
+
+	if(6000 == watchdog)
+	{
+		watchdog=0;
+		state_comms = STATESAFE;
+
+	}
+}
 
 /*
  * PB0 - Led Green
@@ -82,6 +109,26 @@ void init_interrupts_buttons(void)
 
 	sei();
 
+}
+
+/*
+ * Configuracao TIMER1
+ * 
+ */
+void init_timer(void)
+{
+	/* habilita a interrupção do TIMER1 */
+	TIMSK1 |= (1 << OCIE1A);
+
+	TCCR1A = 0; /* Normal mode */
+	TCCR1B = 0; /* inicializa, Stop TC1 */
+
+	/* forma de contar clock/1, 1/(16000000/1)= 62,5 ns */
+
+	TCCR1B |= (1 << CS10); /* sem per-divisao */
+	OCR1A = 16000;  /* temporizador (62,5 ns) * 16000 = 1ms */
+
+	
 }
 
 /* Liga e desliga os led's */
@@ -170,9 +217,26 @@ void state_machine_comunications(void) {
 
 		break;
 
+	case STATESAFE:
+
+		if(((watchdog > 0) && (watchdog < 1000)) ||
+				((watchdog > 2000) && (watchdog < 3000)) ||
+				((watchdog > 4000) && (watchdog < 5000)) )
+		{
+			set_led(RED,ON);
+		}
+		if(((watchdog > 1000) && (watchdog < 2000)) ||
+				((watchdog > 3000) && (watchdog < 4000)) ||
+				((watchdog > 5000) && (watchdog < 6000)) )
+		{
+			set_led(RED,OFF);
+		}
+
+		break;
+
 	default:
 
-		state_comms = STATEINITCOMM;
+		state_comms = STATESAFE;
 
 		break;
 	}
@@ -285,7 +349,7 @@ void state_machine_led(void) {
 /*
  * Contador de carros
  */
-
+/*
 ISR (INT0_vect) {
 	cont--;
 
@@ -293,34 +357,42 @@ ISR (INT1_vect) {
 	cont++;
 }
 
+*/
 
 
  int main(int argc, char **argv)
 {
 	init_RS485();
 	init_io();
+	init_timer();
 	init_interrupts_buttons();
 
 
 	/* PD2 e PD3 entradas para teste led's*/
-	DDRB &= ~(1 << PB0);
+	/*DDRB &= ~(1 << PB0);
 	DDRB &= ~(1 << PB1);
+	*/
 
 	/* turn OFF the Pull-up para os led's*/
-	PORTB &= ~(1 << PB0);
+	/*PORTB &= ~(1 << PB0);
 	PORTB &= ~(1 << PB1);
+	 */
+
+
 
 
 	while (1){
 
-//		state_machine_comunications();
+		state_machine_comunications();
 //		state_machine_led();
 
+		/*
 		PORTD &= ~(1 << PD4) & ~(1 << PD5);
 		_delay_ms(500);
 		PORTD |= (1 << PD4) | (1 << PD5);
-		_delay_ms(500);
+		_delay_ms(500);*/
 
 	}
 	return 0;
 }
+

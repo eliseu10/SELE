@@ -21,6 +21,7 @@
 #define GREENCODE 0xAA
 #define REDCODE 0xFF
 
+
 void init_RS485(void);
 
 void send_byte(uint8_t byte);
