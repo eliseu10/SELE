@@ -22,7 +22,7 @@ void init_RS485(void) {
 	/* UCSR0A = (1 << U2X0);  Double speed */
 
 	/* Definir formato da trama */
-	UCSR0C = (3 << UCSZ00) /* 9 data bits */
+	UCSR0C = (7 << UCSZ00) /* 9 data bits */
 			| (0 << UPM00) /* no parity */
 			| (0 << USBS0) /* 1 stop bit */
 			| (0 << UMSEL00) | (0 << UMSEL01); /* comunicacao assincrona */
@@ -59,12 +59,19 @@ uint8_t get_byte(void) {
 /*
  * Verifica se endereco corresponde ao meu
  */
+
+uint8_t is_addr(void){
+
+	while ( !(UCSR0A & (1<<RXC0)));
+
+	return (UCSR0B & (1 << RXB80));
+
+}
+
 int check_addr(uint8_t byte) {
 	/* (verifica se e um addr) and (corresponde ao slave) */
 
-	return 1;
-
-	if ((UCSR0B & (1 << RXB80)) && (byte == SLAVEADDR)) {
+	if (byte == SLAVEADDR) {
 		return 1;
 	} else {
 		return 0;
