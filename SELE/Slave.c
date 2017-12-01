@@ -42,7 +42,7 @@
 int state_led = STATEINITLED; /* Estados dos LED's */
 int state_comms = STATEINITCOMM;
 int master_state = STATEINITLED;
-char cont = 0;
+uint8_t cont = 0;
 
 /*
  * PB0 - Led Green
@@ -54,21 +54,25 @@ char cont = 0;
 void init_io(void)
 {
 
-	DDRB = 0b00000111; //colocar como saidas os pinos para o max e led's
+	/* colocar como saidas os pinos para o max e led's */
+	DDRB = 0b00000111;
+
+	/* Colocar pinos para led's a 1 */
+	PORTB |= (1 << PB0) | (1 << PB1);
 
 
-	/*Pinos como saidas PD4 e PD5 para os mosfet*/
+	/* Pinos como saidas PD4 e PD5 para os mosfet */
 	DDRD |= (1 << PD4) | (1 << PD5);
 
-	/* set pull-up resistors */
-	//	PORTB = PORTB | (1 << 3);
-	//	PORTB = PORTB | (1 << 4);
+	/* Inicializar as gates do mosfet a 0*/
+	PORTD &= ~(1 << PD4) & ~(1 << PD5);
+
 
 	/* PD2 e PD3 inputs para os botões*/
 	DDRD &= ~(1 << PD2);
 	DDRD &= ~(1 << PD3);
 
-	/* turn On the Pull-up */
+	/* turn On the Pull-up dos botões*/
 	PORTD |= (1 << PD3);
 	PORTD |= (1 << PD2);
 }
@@ -76,7 +80,8 @@ void init_io(void)
 void init_interrupts_buttons(void)
 {
 
-	EICRA |= (1 << ISC11) | (1 << ISC10) | (1 << ISC01) | (1 << ISC00); /* set INT0 to trigger on RE */
+	EICRA |= (1 << ISC11) | (1 << ISC01); /* set INT0 and INT1 to trigger on FE */
+	EICRA &= ~(1 << ISC10) & ~(1 << ISC00);
 	EIMSK |= (1 << INT0);     /* Turns on INT0 */
 	EIMSK |= (1 << INT1);     /* Turns on INT1 */
 
@@ -87,16 +92,16 @@ void init_interrupts_buttons(void)
 /* Liga e desliga os led's */
 void set_led(int color, int set)
 {
-	if ((RED == color) && (ON == set))
+	if ((RED == color) && (OFF == set))
 	{
 		PORTB = PORTB | (1 << 1);
-	} else if ((RED == color) && (OFF == set))
+	} else if ((RED == color) && (ON == set))
 	{
 		PORTB = PORTB & ~(1 << 1);
-	} else if ((GREEN == color) && (ON == set))
+	} else if ((GREEN == color) && (OFF == set))
 	{
 		PORTB = PORTB | (1 << 0);
-	} else if ((GREEN == color) && (OFF == set))
+	} else if ((GREEN == color) && (ON == set))
 	{
 		PORTB = PORTB & ~(1 << 0);
 	}
@@ -132,12 +137,15 @@ void state_machine_comunications(void) {
 	case STATEINITCOMM:
 
 		set_driver(READ);
-		byte = get_byte();
 
-		if (check_addr(byte))
-		{
-			state_comms = STATESENDCOUNT;
+		if(is_addr()){
+			byte = get_byte();
+			if (check_addr(byte))
+			{
+				state_comms = STATESENDCOUNT;
+			}
 		}
+
 		break;
 
 	case STATESENDCOUNT:
@@ -287,21 +295,20 @@ void state_machine_led(void) {
  */
 
 ISR (INT0_vect) {
-	cont--;
-
-ISR (INT1_vect) {
 	cont++;
+	send_byte(cont);
+	return;
 }
 
+ISR (INT1_vect) {
+	cont--;
+	send_byte(cont);
+	return;
+}
 
+void test_led(void){
 
- int main(int argc, char **argv)
-{
-	init_RS485();
-	init_io();
-	init_interrupts_buttons();
-
-
+	/*Trocar Pinos de controlo de leds de saidas para entradas*/
 	/* PD2 e PD3 entradas para teste led's*/
 	DDRB &= ~(1 << PB0);
 	DDRB &= ~(1 << PB1);
@@ -311,15 +318,23 @@ ISR (INT1_vect) {
 	PORTB &= ~(1 << PB1);
 
 
+	PORTD &= ~(1 << PD4) & ~(1 << PD5);
+	_delay_ms(500);
+	PORTD |= (1 << PD4) | (1 << PD5);
+	_delay_ms(500);
+
+}
+
+ int main(int argc, char **argv){
+
+	init_RS485();
+	init_io();
+	init_interrupts_buttons();
+
 	while (1){
 
 //		state_machine_comunications();
 //		state_machine_led();
-
-		PORTD &= ~(1 << PD4) & ~(1 << PD5);
-		_delay_ms(500);
-		PORTD |= (1 << PD4) | (1 << PD5);
-		_delay_ms(500);
 
 	}
 	return 0;

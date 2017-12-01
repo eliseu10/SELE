@@ -31,5 +31,7 @@ int check_addr(uint8_t byte);
 
 void set_driver(int operation);
 
+void is_adddr(void);
+
 #endif /* RS485_H_ */
 
