@@ -41,34 +41,172 @@
 #define IN 1
 
 //int state_led = STATEINITLED; /* Estados dos LED's */
-uint8_t volatile state_comms = STATEINITCOMM;
-uint8_t volatile master_state = STATEINITLED;
-uint8_t volatile cont = 0;
-
-volatile int watchdog = 0;
+volatile uint8_t state_comms = STATEINITCOMM;
+volatile char master_state = STATEINITLED;
+volatile char cont = 0;
 
 void init_io(void);
+
 void init_interrupts_buttons(void);
-void init_timer(void);
+
 void set_led(int color, int set);
-void check_master_state(char byte);
+
+void check_master_state(uint8_t byte);
+
 void state_machine_comunications(void);
 
-/*
- * Configurar watch dog timer
- * Caso passem mais de 5 segundos sem comunicar
- * liga watch dog e passa para rescue_mode
- */
-ISR(TIMER1_COMPA_vect) {
-	TCNT1 = 0;
-	watchdog++;
+void test_communication_master(void);
 
-	if (6000 == watchdog) {
-		watchdog = 0;
-		state_comms = STATESAFE;
+int main(int argc, char **argv) {
+
+	init_RS485();
+	init_io();
+	init_timer();
+	init_interrupts_buttons();
+
+	test_communication_master();
+
+	while (1) {
+
+		state_machine_comunications();
 
 	}
 }
+
+void state_machine_comunications(void) {
+
+	/* integer 8 bits */
+	char byte = 0;
+
+	switch (state_comms) {
+
+	case STATEINITCOMM:
+
+		set_multiprocessor_bit();
+
+		byte = get_byte();
+
+		if (get_watchdog_flag()){
+
+			state_comms = STATESAFE;
+
+		} else if (check_addr(byte)) {
+
+			reset_watchdog();
+			state_comms = STATESENDCOUNT;
+
+		} else {
+
+			state_comms = STATEINITCOMM;
+
+		}
+
+		break;
+
+	case STATESENDCOUNT:
+
+		send_byte(cont);
+
+		if(get_watchdog_flag()){
+
+			state_comms = STATESAFE;
+
+		} else {
+
+			state_comms = STATERECEIVESTATE;
+
+		}
+
+		break;
+
+	case STATERECEIVESTATE:
+
+		byte = get_byte();
+
+		if(get_watchdog_flag()){
+
+			state_comms = STATESAFE;
+
+		} else {
+
+			reset_watchdog();
+
+			check_master_state(byte);
+
+			state_comms = STATESENDACK;
+		}
+
+		break;
+
+	case STATESENDACK:
+
+		send_byte(master_state);
+
+		if(get_watchdog_flag()){
+
+			state_comms = STATESAFE;
+
+		} else {
+
+			state_comms = STATEINITCOMM;
+		}
+
+		break;
+
+	case STATESAFE:
+
+		set_led(GREEN, OFF);
+
+		while (1) {
+
+			set_led(RED, ON);
+			while (!(500 < get_timer_time()));
+			reset_watchdog();
+
+			set_led(RED, OFF);
+			while (!(500 < get_timer_time()));
+			reset_watchdog();
+
+		}
+
+		break;
+
+	default:
+
+		state_comms = STATESAFE;
+
+		break;
+	}
+
+}
+
+
+void test_communication_master(void){
+
+	char byte;
+
+	do {
+		set_multiprocessor_bit();
+
+		byte = get_byte();
+
+		if (get_watchdog_flag()){
+
+			state_comms = STATESAFE;
+			break;
+		}
+
+	} while (!check_addr(byte));
+
+	reset_watchdog();
+
+	send_byte(byte);
+
+	return;
+
+}
+
+
 
 /*
  * PB0 - Led Green
@@ -98,24 +236,6 @@ void init_io(void) {
 	/* turn On the Pull-up dos botões*/
 	PORTD |= (1 << PD3);
 	PORTD |= (1 << PD2);
-}
-
-/*
- * Configuracao TIMER1
- * 
- */
-void init_timer(void) {
-	/* habilita a interrupção do TIMER1 */
-	TIMSK1 |= (1 << OCIE1A);
-
-	TCCR1A = 0; /* Normal mode */
-	TCCR1B = 0; /* inicializa, Stop TC1 */
-
-	/* forma de contar clock/1, 1/(16000000/1)= 62,5 ns */
-
-	TCCR1B |= (1 << CS10); /* sem per-divisao */
-	OCR1A = 16000; /* temporizador (62,5 ns) * 16000 = 1ms */
-
 }
 
 /* Liga e desliga os led's */
@@ -148,72 +268,6 @@ void check_master_state(uint8_t byte) {
 	}
 }
 
-void state_machine_comunications(void) {
-
-	/* integer 8 bits */
-	uint8_t byte = 0;
-
-	switch (state_comms) {
-
-	case STATEINITCOMM:
-
-		if (is_addr()) {
-			byte = get_byte();
-			if (check_addr(byte)) {
-				state_comms = STATESENDCOUNT;
-			}
-		}
-
-		break;
-
-	case STATESENDCOUNT:
-
-		send_byte(cont);
-
-		state_comms = STATERECEIVESTATE;
-		break;
-
-	case STATERECEIVESTATE:
-
-		byte = get_byte();
-
-		check_master_state(byte);
-
-		state_comms = STATESENDACK;
-		break;
-
-	case STATESENDACK:
-
-		send_byte(master_state);
-
-		state_comms = STATEINITCOMM;
-
-		break;
-
-	case STATESAFE:
-
-		if (((watchdog > 0) && (watchdog < 1000))
-				|| ((watchdog > 2000) && (watchdog < 3000))
-				|| ((watchdog > 4000) && (watchdog < 5000))) {
-			set_led(RED, ON);
-		}
-		if (((watchdog > 1000) && (watchdog < 2000))
-				|| ((watchdog > 3000) && (watchdog < 4000))
-				|| ((watchdog > 5000) && (watchdog < 6000))) {
-			set_led(RED, OFF);
-		}
-
-		break;
-
-	default:
-
-		state_comms = STATESAFE;
-
-		break;
-	}
-
-}
-
 void init_interrupts_buttons(void) {
 
 	/* set INT0 and INT1 to trigger on FE */
@@ -224,12 +278,7 @@ void init_interrupts_buttons(void) {
 	EIMSK |= (1 << INT1); /* Turns on INT1 */
 
 	sei();
-
 }
-
-/*
- * Contador de carros
- */
 
 /* Entrada */
 ISR (INT0_vect) {
@@ -241,19 +290,5 @@ ISR (INT0_vect) {
 ISR (INT1_vect) {
 	cont--;
 	return;
-}
-
-int main(int argc, char **argv) {
-
-	init_RS485();
-	init_io();
-	init_timer();
-	init_interrupts_buttons();
-
-	while (1) {
-
-		state_machine_comunications();
-	}
-
 }
 
