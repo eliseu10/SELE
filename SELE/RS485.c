@@ -1,17 +1,14 @@
-/*
- * RS485.c
- *
- *  Created on: 27/11/2017
- *      Author: helio
- */
-
 #include "RS485.h"
 
+/*
+ * Watchdog timer e a flag
+ */
 volatile uint8_t watchdog_flag = 0;
-volatile int watchdog = 0;
+volatile uint16_t watchdog = 0;
 
 /*
- * Configuracao TIMER1
+ * Inicializa o timer do Watchdog
+ * Utiliza o timer1
  */
 void init_timer(void) {
 
@@ -24,22 +21,23 @@ void init_timer(void) {
 	/* forma de contar clock/1, 1/(16000000/1)= 62,5 ns */
 
 	TCCR1B |= (1 << CS10); /* sem per-divisao */
-	OCR1A = 16000; /* temporizador (62,5 ns) * 16000 = 1ms */
+	OCR1A = 16000; /* temporizador (62,5 ns) * 16000 = 1,0ms */
 
+	sei(); /* Ativar interrupções globais */
 }
 
 /*
- * Configurar watch dog timer
- * Caso passem mais de 6 segundos sem comunicar
- * liga watch dog e passa para rescue_mode
+ * Interrupção por comparação para o timer1
+ * Faz um timer que o menor tick é 1ms
+ * Ativa a flag do watchdog caso o Watchdog >= COMMDETH
  */
-
 ISR(TIMER1_COMPA_vect) {
 	TCNT1 = 0;
 	watchdog++;
 
-	if (watchdog == INTMAX_MAX)
-		watchdog = 0;
+	if (watchdog == UINT16_MAX){
+		reset_watchdog();
+	}
 
 	if (COMMDEATH <= watchdog) {
 		reset_watchdog();
@@ -49,24 +47,33 @@ ISR(TIMER1_COMPA_vect) {
 	return;
 }
 
+/*
+ * Retorna o vaor do watchdog
+ */
 int get_timer_time(void){
 	return watchdog;
 }
 
+/*
+ * Retorna o valor daflag do watchdog
+ * A flag do watchdog e colocada a 1 quando o watch dog passa o valor em COMMDEATH
+ */
 uint8_t get_watchdog_flag(void){
 	return watchdog_flag;
 }
 
+/*
+ * Faz reset ao contador watchdog das comunicações
+ */
 void reset_watchdog(void){
 	watchdog = 0;
 }
 
-
 /*
+ * Inicializa a comunicação assincrona RS485
  * Trama:
  * - 1 start bit
- * - 8 bits data
- * - 1 address bit
+ * - 9 bits data
  * - 1 stop bit
  * Rx/Tx
  */
@@ -84,13 +91,10 @@ void init_RS485(void) {
 
 	/* Ativar emissao e rececao */
 	UCSR0B = (1 << TXEN0) | (1 << RXEN0) | (1 << UCSZ02);
-
 }
 
 /*
- * Para enviar um byte basta escreve-lo
- * no registo UDR0, verificando antes se
- * este está disponível (bit UDRE0 de UCSR0A)
+ * Envia um byte atravez da comunicação assincrona
  */
 void send_byte(char byte) {
 
@@ -104,7 +108,8 @@ void send_byte(char byte) {
 		}
 	}
 
-	UDR0 = byte; /* Envia para a porta serie */
+	/* Envia para a porta serie */
+	UDR0 = byte;
 
 	/* Reset flag */
 	UCSR0A |= (1 << TXC0);
@@ -121,6 +126,9 @@ void send_byte(char byte) {
 	return;
 }
 
+/*
+ * Retorna um byte recebido atravez do RS485
+ */
 char get_byte(void) {
 
 	set_driver(READ);
@@ -136,39 +144,9 @@ char get_byte(void) {
 }
 
 /*
- * Verifica se endereco corresponde ao meu
+ * Verifica se o endereço recebido é o endereço do SLAVE
+ * Se sim retorna 1 senão retorna 0
  */
-
-void set_multiprocessor_bit(void){
-
-	UCSR0A |= (1 << MPCM0);
-	return;
-
-}
-
-void clear_multiprocessor_bit(void){
-
-	UCSR0A &= ~(1 << MPCM0);
-	return;
-
-}
-
-/*Não utiliar*/
-uint8_t is_addr(void){
-
-	/*Ativar modo multiprocessador*/
-	UCSR0A |= (1 << MPCM0);
-
-	while ( !(UCSR0A & (1<<RXC0))){
-		if (watchdog_flag){
-			return 0x00;
-		}
-	}
-
-	return (UCSR0B & (1 << RXB80));
-
-}
-
 int check_addr(uint8_t byte) {
 	/* (verifica se e um addr) and (corresponde ao slave) */
 
@@ -182,8 +160,27 @@ int check_addr(uint8_t byte) {
 }
 
 /*
- * Controla pino responsável por indicar a drive(MAX485)
- * se vai receber ou enviar
+ * Coloca a 1 o bit do modo multiprocessador
+ */
+void set_multiprocessor_bit(void){
+
+	UCSR0A |= (1 << MPCM0);
+	return;
+
+}
+
+/*
+ * Coloca a 0 o bit do modo multiprocessador para o desativar
+ */
+void clear_multiprocessor_bit(void){
+
+	UCSR0A &= ~(1 << MPCM0);
+	return;
+
+}
+
+/*
+ * Coloca o driver do RS485 em modo de escrita (WRITE) ou em modo de leitura (READ)
  */
 void set_driver(int operation) {
 	if (READ == operation) {

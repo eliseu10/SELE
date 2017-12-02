@@ -7,13 +7,14 @@
 #define ERRORCOUNT 9999
 
 /*
- * Led RED ou Green
+ * Identificação dos LED's
  */
 #define RED 0xFF
 #define GREEN 0xAA
+#define YELLOW 0x00
 
 /*
- * Estados para a maquina de estados dos LED's
+ * Identificação dos estados do Mestre
  */
 #define STATEINITLED 1
 #define STATEGREEN 2
@@ -29,33 +30,74 @@
 #define STATESAFE 3
 
 /*
- * Liga ou desliga led
+ * Estado dos LED's
  */
 #define OFF 0
 #define ON 1
 
 /*
- * Entrou carro ou saiu
+ * Declaração e inicialização de variaveis globais
  */
-#define OUT 0
-#define IN 1
-
-//int state_led = STATEINITLED; /* Estados dos LED's */
 volatile uint8_t state_comms = STATEINITCOMM;
 volatile char master_state = STATEINITLED;
 volatile char cont = 0;
 
+/**********************************************************************
+ *               Declaração de funções utilizadas                     *
+ **********************************************************************
+ **********************************************************************/
+
+/*
+ * Inicializa os inputs e os outputs
+ */
 void init_io(void);
 
+/*
+ * Inicializa as interrupções externas
+ */
 void init_interrupts_buttons(void);
 
+/*
+ * Liga e desliga os LEDs
+ * color - Cor do led (RED, GREEN ou YELLOW)
+ * set - ligado ou desligado (ON ou OFF)
+ */
 void set_led(int color, int set);
 
+/*
+ * Verifica o byte que o mestre mandou, ou seja se o parque esta livre ou está cheio.
+ * Liga o LED verde ou Vermelho de acordo com o que o mestre mandou
+ */
 void check_master_state(uint8_t byte);
 
+/*
+ * Maquina de estados responsavel pelo funcionamento das comunicações entre o mestre e o slave
+ */
 void state_machine_comunications(void);
 
+/*
+ * Função que permite o Mestre testar se o Slave esta vivo e responde
+ */
 void test_communication_master(void);
+
+/*
+ * Função que teste se os LED vermelho e verde estão a funcionar
+ * (Só testa circuitos abertos. Não consegue detetar curto circuitos)
+ */
+void test_led(void);
+
+/*
+ * Obtem o o estado do LED vermelho (RED) e do LED verde (GREEN)
+ * led - GREEN ou RED
+ * Retorno - 1 se ligado 0 se não
+ */
+uint8_t get_led_state(uint8_t led);
+
+/*
+ * Liga o LED verde ou vermelho atravez do les para fazer teste.
+ */
+void set_mosfet_led(uint8_t led, uint8_t set);
+
 
 int main(int argc, char **argv) {
 
@@ -64,15 +106,101 @@ int main(int argc, char **argv) {
 	init_timer();
 	init_interrupts_buttons();
 
+	test_led();
+
 	test_communication_master();
 
 	while (1) {
-
 		state_machine_comunications();
-
 	}
 }
 
+/*
+ * Obtem o o estado do LED vermelho (RED) e do LED verde (GREEN)
+ * led - GREEN ou RED
+ * Retorno - 1 se ligado 0 se não
+ */
+uint8_t get_led_state(uint8_t led) {
+
+	if (GREEN == led) {
+		if (PINB & (1 << PB0)) {
+			return ON;
+		} else {
+			return OFF;
+		}
+	} else if (RED == led) {
+		if (PINB & (1 << PB1)) {
+			return ON;
+		} else {
+			return OFF;
+		}
+	}
+	return 0xFF;
+}
+
+/*
+ * Liga o LED verde ou vermelho atravez do les para fazer teste.
+ */
+void set_mosfet_led(uint8_t led, uint8_t set) {
+	if ((RED == led) && (ON == set)) {
+		PORTD = PORTD | (1 << PD5);
+	} else if ((RED == led) && (OFF == set)) {
+		PORTD = PORTD & ~(1 << PD5);
+	} else if ((GREEN == led) && (ON == set)) {
+		PORTD = PORTD | (1 << PD4);
+	} else if ((GREEN == led) && (OFF == set)) {
+		PORTD = PORTD & ~(1 << PD4);
+	}
+}
+
+/*
+ * Função que teste se os LED vermelho e verde estão a funcionar
+ * (Só testa circuitos abertos. Não consegue detetar curto circuitos)
+ */
+void test_led(void) {
+
+	/* colocar como estadas os pinos para o led's */
+	DDRB &= ~(1 << PB0) & ~(1 << PB1);
+
+	/* Desativar pull-up resgister para os led*/
+	PORTB &= ~(1 << PB0) & ~(1 << PB1);
+
+	set_mosfet_led(GREEN, ON);
+	set_mosfet_led(RED, ON);
+
+	while (1) {
+		if (!get_led_state(GREEN)) {
+			set_led(YELLOW, ON);
+			while (!(500 < get_timer_time()))
+				;
+			reset_watchdog();
+			set_led(YELLOW, OFF);
+			while (!(500 < get_timer_time()))
+				;
+			reset_watchdog();
+		}
+		if (!get_led_state(RED)) {
+			set_led(YELLOW, ON);
+			while (!(1000 < get_timer_time()))
+				;
+			reset_watchdog();
+			set_led(YELLOW, OFF);
+			while (!(1000 < get_timer_time()))
+				;
+			reset_watchdog();
+		}
+		if (get_led_state(RED) && get_led_state(GREEN)) {
+			init_io();
+			return;
+		}
+	}
+	init_io();
+	return;
+}
+
+/*
+ * Maquina de estados responsavel pelo funcionamento das comunicações entre o mestre e o slave
+ */
 void state_machine_comunications(void) {
 
 	/* integer 8 bits */
@@ -86,7 +214,7 @@ void state_machine_comunications(void) {
 
 		byte = get_byte();
 
-		if (get_watchdog_flag()){
+		if (get_watchdog_flag()) {
 
 			state_comms = STATESAFE;
 
@@ -107,7 +235,7 @@ void state_machine_comunications(void) {
 
 		send_byte(cont);
 
-		if(get_watchdog_flag()){
+		if (get_watchdog_flag()) {
 
 			state_comms = STATESAFE;
 
@@ -123,7 +251,7 @@ void state_machine_comunications(void) {
 
 		byte = get_byte();
 
-		if(get_watchdog_flag()){
+		if (get_watchdog_flag()) {
 
 			state_comms = STATESAFE;
 
@@ -142,7 +270,7 @@ void state_machine_comunications(void) {
 
 		send_byte(master_state);
 
-		if(get_watchdog_flag()){
+		if (get_watchdog_flag()) {
 
 			state_comms = STATESAFE;
 
@@ -160,11 +288,13 @@ void state_machine_comunications(void) {
 		while (1) {
 
 			set_led(RED, ON);
-			while (!(500 < get_timer_time()));
+			while (!(500 < get_timer_time()))
+				;
 			reset_watchdog();
 
 			set_led(RED, OFF);
-			while (!(500 < get_timer_time()));
+			while (!(500 < get_timer_time()))
+				;
 			reset_watchdog();
 
 		}
@@ -180,8 +310,10 @@ void state_machine_comunications(void) {
 
 }
 
-
-void test_communication_master(void){
+/*
+ * Função que permite o Mestre testar se o Slave esta vivo e responde
+ */
+void test_communication_master(void) {
 
 	char byte;
 
@@ -190,7 +322,7 @@ void test_communication_master(void){
 
 		byte = get_byte();
 
-		if (get_watchdog_flag()){
+		if (get_watchdog_flag()) {
 
 			state_comms = STATESAFE;
 			break;
@@ -206,22 +338,18 @@ void test_communication_master(void){
 
 }
 
-
-
 /*
- * PB0 - Led Green
- * PB1 - Led Red
- * PB3 - write/read selector
- * PB4 - button in
- * PB5 - button out
+ * Inicializa os inputs e os outputs
  */
 void init_io(void) {
 
 	/* colocar como saidas os pinos para o max e led's */
 	DDRB = 0b00000111;
+	DDRD |= (1 << PD6);
 
 	/* Colocar pinos para led's a 1 */
 	PORTB |= (1 << PB0) | (1 << PB1);
+	PORTD |= (1 << PD6);
 
 	/* Pinos como saidas PD4 e PD5 para os mosfet */
 	DDRD |= (1 << PD4) | (1 << PD5);
@@ -238,7 +366,11 @@ void init_io(void) {
 	PORTD |= (1 << PD2);
 }
 
-/* Liga e desliga os led's */
+/*
+ * Liga e desliga os LEDs
+ * color - Cor do led (RED, GREEN ou YELLOW)
+ * set - ligado ou desligado (ON ou OFF)
+ */
 void set_led(int color, int set) {
 	if ((RED == color) && (OFF == set)) {
 		PORTB = PORTB | (1 << 1);
@@ -248,11 +380,16 @@ void set_led(int color, int set) {
 		PORTB = PORTB | (1 << 0);
 	} else if ((GREEN == color) && (ON == set)) {
 		PORTB = PORTB & ~(1 << 0);
+	} else if ((YELLOW == color) && (OFF == set)) {
+		PORTD = PORTD | (1 << PD6);
+	} else if ((YELLOW == color) && (ON == set)) {
+		PORTD = PORTD & ~(1 << PD6);
 	}
 }
 
 /*
- * Verificar se o mestre diz que pode entrar carros ou não e muda o semafero de acordo.
+ * Verifica o byte que o mestre mandou, ou seja se o parque esta livre ou está cheio.
+ * Liga o LED verde ou Vermelho de acordo com o que o mestre mandou
  */
 void check_master_state(uint8_t byte) {
 	if (GREENCODE == byte) {
@@ -268,6 +405,9 @@ void check_master_state(uint8_t byte) {
 	}
 }
 
+/*
+ * Inicializa as interrupções externas
+ */
 void init_interrupts_buttons(void) {
 
 	/* set INT0 and INT1 to trigger on FE */
@@ -280,13 +420,13 @@ void init_interrupts_buttons(void) {
 	sei();
 }
 
-/* Entrada */
+/* Interrupção para detetar entrada */
 ISR (INT0_vect) {
 	cont++;
 	return;
 }
 
-/* Saidas */
+/* Interrupção para detetar saida */
 ISR (INT1_vect) {
 	cont--;
 	return;
