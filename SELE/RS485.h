@@ -24,10 +24,7 @@
 /*
  *  Endereço do slave a ser programado (Mudar isto para cada slave)
  */
-#define SLAVEADDR 0x02
-
-#define GREENCODE 0xAA
-#define REDCODE 0xFF
+#define SLAVEADDR 0x01
 
 /*
  * Faz reset ao contador watchdog das comunicações

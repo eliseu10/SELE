@@ -1,10 +1,7 @@
 #include "RS485.h"
 #include <util/delay.h>
 #include <avr/interrupt.h>
-
-#define UPCOUNT 1
-#define DOWNCOUNT 2
-#define ERRORCOUNT 9999
+#include "memory_test.h"
 
 /*
  * Identificação dos LED's
@@ -44,7 +41,6 @@ volatile char cont = 0;
 
 /**********************************************************************
  *               Declaração de funções utilizadas                     *
- **********************************************************************
  **********************************************************************/
 
 /*
@@ -98,13 +94,27 @@ uint8_t get_led_state(uint8_t led);
  */
 void set_mosfet_led(uint8_t led, uint8_t set);
 
+/*
+ *Função de teste de memoria flash
+ */
+void test_memory_flash(void);
 
 int main(int argc, char **argv) {
+
+//	if(memory_test_SRAM()){
+//		init_io();
+//		set_led(RED, ON);
+//	} else {
+//		init_io();
+//		set_led(GREEN, ON);
+//	}
 
 	init_RS485();
 	init_io();
 	init_timer();
 	init_interrupts_buttons();
+
+	//test_memory_flash();
 
 	test_led();
 
@@ -113,10 +123,22 @@ int main(int argc, char **argv) {
 	while (1) {
 		state_machine_comunications();
 	}
+
+}
+
+/*
+ *Função de teste de memoria flash
+ */
+void test_memory_flash(void){
+	if (!memory_test_FLASH()) {
+		set_led(YELLOW, ON);
+		while(1);
+	}
 }
 
 /*
  * Obtem o o estado do LED vermelho (RED) e do LED verde (GREEN)
+ * Nota_ só usar em teste de led
  * led - GREEN ou RED
  * Retorno - 1 se ligado 0 se não
  */
@@ -288,13 +310,11 @@ void state_machine_comunications(void) {
 		while (1) {
 
 			set_led(RED, ON);
-			while (!(500 < get_timer_time()))
-				;
+			while (!(500 <= get_timer_time()));
 			reset_watchdog();
 
 			set_led(RED, OFF);
-			while (!(500 < get_timer_time()))
-				;
+			while (!(500 <= get_timer_time()));
 			reset_watchdog();
 
 		}
@@ -392,11 +412,11 @@ void set_led(int color, int set) {
  * Liga o LED verde ou Vermelho de acordo com o que o mestre mandou
  */
 void check_master_state(uint8_t byte) {
-	if (GREENCODE == byte) {
+	if (GREEN == byte) {
 		master_state = GREEN;
 		set_led(GREEN, ON);
 		set_led(RED, OFF);
-	} else if (REDCODE == byte) {
+	} else if (RED == byte) {
 		master_state = RED;
 		set_led(RED, ON);
 		set_led(GREEN, OFF);
