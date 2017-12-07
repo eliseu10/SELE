@@ -24,7 +24,7 @@
 /*
  *  Endereço do slave a ser programado (Mudar isto para cada slave)
  */
-#define SLAVEADDR 0x01
+#define SLAVEADDR 0x02
 
 /*
  * Faz reset ao contador watchdog das comunicações
@@ -50,12 +50,12 @@ uint8_t get_watchdog_flag(void);
 /*
  * Retorna o vaor do watchdog
  */
-int get_timer_time(void);
+uint16_t get_timer_time(void);
 
 /*
  * Inicializa o timer do Watchdog
  */
-void init_timer(void);
+void init_timer1(void);
 
 /*
  * Inicializa a comunicação assimcrona RS485

@@ -33,12 +33,22 @@
 #define ON 1
 
 /*
+ * Periodo da leitura dos butões 10 ms
+ */
+#define READ_BUTTONS_PERIOD 10
+
+
+/*
  * Declaração e inicialização de variaveis globais
  */
 volatile uint8_t state_comms = STATEINITCOMM;
 volatile char master_state = STATEINITLED;
 volatile char cont = 0;
 
+volatile uint8_t led_state = OFF;
+volatile uint16_t timer0 = 0;
+volatile uint8_t last_button_out = 1;
+volatile uint8_t last_button_in = 1;
 /**********************************************************************
  *               Declaração de funções utilizadas                     *
  **********************************************************************/
@@ -52,6 +62,11 @@ void init_io(void);
  * Inicializa as interrupções externas
  */
 void init_interrupts_buttons(void);
+
+/*
+ * Desativa as interrupções externas
+ */
+void init_safe_state(void);
 
 /*
  * Liga e desliga os LEDs
@@ -95,26 +110,29 @@ uint8_t get_led_state(uint8_t led);
 void set_mosfet_led(uint8_t led, uint8_t set);
 
 /*
- *Função de teste de memoria flash
+ *
  */
-void test_memory_flash(void);
+void memory_test(void);
+
+/*
+ *
+ */
+void init_timer0(void);
+
+/**************************************************
+ * MAIN
+ **************************************************/
 
 int main(int argc, char **argv) {
 
-//	if(memory_test_SRAM()){
-//		init_io();
-//		set_led(RED, ON);
-//	} else {
-//		init_io();
-//		set_led(GREEN, ON);
-//	}
-
 	init_RS485();
 	init_io();
-	init_timer();
-	init_interrupts_buttons();
+	init_timer1();
+	init_timer0();
 
-	//test_memory_flash();
+//	init_interrupts_buttons();
+
+	memory_test();
 
 	test_led();
 
@@ -127,11 +145,81 @@ int main(int argc, char **argv) {
 }
 
 /*
+ * Inicializa o timer0
+ * Utiliza o timer0
+ */
+void init_timer0(void) {
+
+    // Set the Timer Mode to CTC
+    TCCR0A |= (1 << WGM01);
+
+    // Set the value that you want to count to
+    OCR0A = 250;
+
+    TIMSK0 |= (1 << OCIE0A);    //Set the ISR COMPA vect
+
+    TCCR0B |= (1 << CS01) | (1 << CS00);
+    // set prescaler to 64 and start the timer
+
+    sei();         //enable interrupts
+
+    /*
+     * Interrupção a cada 1ms
+     */
+}
+
+/*
+ * Interrupção por comparação para o timer0
+ * a cada 1ms
+ */
+ISR(TIMER0_COMPA_vect) {
+	timer0++;
+
+	if (timer0 == UINT16_MAX){
+		timer0 = 0;
+	}
+
+	if (timer0 >= READ_BUTTONS_PERIOD) {
+		if (!(PIND & (1 << PD2))) {
+			//entrou
+			if (last_button_in) {
+				cont++;
+				last_button_in = 0;
+			}
+		} else {
+			last_button_in = 1;
+		}
+
+		if (!(PIND & (1 << PD3))) {
+			//saiu
+			if (last_button_out) {
+				cont--;
+				last_button_out = 0;
+			}
+		} else {
+			last_button_out = 1;
+		}
+
+		timer0 = 0;
+	}
+
+	return;
+}
+
+/*
  *Função de teste de memoria flash
  */
-void test_memory_flash(void){
-	if (!memory_test_FLASH()) {
+void memory_test(void){
+	uint8_t err = 0;
+	if (memory_test_flash_online()) {
 		set_led(YELLOW, ON);
+		err = 1;
+	}
+	if(memory_sram_test()){
+		set_led(RED, ON);
+		err = 1;
+	}
+	if(err){
 		while(1);
 	}
 }
@@ -181,7 +269,10 @@ void set_mosfet_led(uint8_t led, uint8_t set) {
  */
 void test_led(void) {
 
-	/* colocar como estadas os pinos para o led's */
+	/* Forçar a saida a 0*/
+	PORTB &= ~(1 << PB0) & ~(1 << PB1);
+
+	/* colocar como entradas os pinos para o led's */
 	DDRB &= ~(1 << PB0) & ~(1 << PB1);
 
 	/* Desativar pull-up resgister para os led*/
@@ -305,18 +396,24 @@ void state_machine_comunications(void) {
 
 	case STATESAFE:
 
+		init_safe_state();
+
 		set_led(GREEN, OFF);
 
+		reset_watchdog();
+
 		while (1) {
-
-			set_led(RED, ON);
-			while (!(500 <= get_timer_time()));
-			reset_watchdog();
-
-			set_led(RED, OFF);
-			while (!(500 <= get_timer_time()));
-			reset_watchdog();
-
+			if ((500 == get_timer_time())) {
+				if (ON == led_state) {
+					set_led(RED, OFF);
+					led_state = OFF;
+					reset_watchdog();
+				} else {
+					set_led(RED, ON);
+					led_state = ON;
+					reset_watchdog();
+				}
+			}
 		}
 
 		break;
@@ -423,6 +520,18 @@ void check_master_state(uint8_t byte) {
 	} else {
 		master_state = 0xA0;
 	}
+}
+
+/*
+ * Desativa interrupções externas
+ */
+void init_safe_state(void) {
+
+	TIMSK0 &= ~(1 << OCIE0A);
+	//TCCR0B = 0;
+
+	EIMSK &= ~(1 << INT0); /* Turns on INT0 */
+	EIMSK &= ~(1 << INT1); /* Turns on INT1 */
 }
 
 /*

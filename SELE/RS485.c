@@ -7,23 +7,29 @@ volatile uint8_t watchdog_flag = 0;
 volatile uint16_t watchdog = 0;
 
 /*
+ * Inicializa o timer0
+ */
+
+
+/*
  * Inicializa o timer do Watchdog
  * Utiliza o timer1
  */
-void init_timer(void) {
+void init_timer1(void) {
 
-	/* habilita a interrupção do TIMER1 */
+	OCR1A = 16000;
+
+	TCCR1B |= (1 << WGM12);
+	// Mode 4, CTC on OCR1A
+
 	TIMSK1 |= (1 << OCIE1A);
+	//Set interrupt on compare match
 
-	TCCR1A = 0; /* Normal mode */
-	TCCR1B = 0; /* inicializa, Stop TC1 */
+	TCCR1B |= (1 << CS10);
+	//start the timer
 
-	/* forma de contar clock/1, 1/(16000000/1)= 62,5 ns */
-
-	TCCR1B |= (1 << CS10); /* sem per-divisao */
-	OCR1A = 16000; /* temporizador (62,5 ns) * 16000 = 1,0ms */
-
-	sei(); /* Ativar interrupções globais */
+	sei();
+	// enable interrupts
 }
 
 /*
@@ -32,15 +38,14 @@ void init_timer(void) {
  * Ativa a flag do watchdog caso o Watchdog >= COMMDETH
  */
 ISR(TIMER1_COMPA_vect) {
-	TCNT1 = 0;
 	watchdog++;
 
-	if (watchdog == UINT16_MAX){
+	if (watchdog == 65530){
 		reset_watchdog();
 	}
 
 	if (COMMDEATH <= watchdog) {
-		reset_watchdog();
+		//reset_watchdog();
 		watchdog_flag = 1;
 	}
 
@@ -50,7 +55,7 @@ ISR(TIMER1_COMPA_vect) {
 /*
  * Retorna o vaor do watchdog
  */
-int get_timer_time(void){
+uint16_t get_timer_time(void){
 	return watchdog;
 }
 
