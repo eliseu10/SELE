@@ -29,7 +29,7 @@
 #define INTERNAL_SRAM_START 0x0100
 #define CLASSB_NSECS 8
 
-//internal The size of each segment in bytes
+/* internal The size of each segment in bytes */
 #define CLASSB_SEC_SIZE (INTERNAL_SRAM_SIZE / CLASSB_NSECS)
 
 int memory_sram_test( void );

@@ -9,7 +9,7 @@ static uint8_t classb_buffer[CLASSB_SEC_SIZE]/* __attribute__ ((section (".class
 
 int memory_sram_test()
 {
-	// This variable keeps track of the section to test.
+	/* This variable keeps track of the section to test. */
 	static uint8_t current_section = 0;
 
 	for(current_section = 0; current_section < CLASSB_NSECS; current_section++) {
@@ -33,7 +33,7 @@ int marchCminus(register volatile uint8_t * p_sram, register volatile uint8_t * 
 
 	register uint16_t i = 0;
 
-	// Save content of the section: copy to buffer unless we test the buffer
+	/* Save content of the section: copy to buffer unless we test the buffer */
 	if (p_buffer != p_sram)
 		for (uint16_t i = 0; i < size; i++)
 			*(p_buffer + i) = *(p_sram + i);
@@ -42,17 +42,18 @@ int marchCminus(register volatile uint8_t * p_sram, register volatile uint8_t * 
 	 * Implemetação do MARCH C-
 	 */
 
-	// Test phase 1: Write zeros UP
+	/* Test phase 1: Write zeros UP */
 	for (i = 0; i < size; i++) {
 		*(p_sram + i) = ZERO;
 
-//		//induzir erro
-//		if((p_sram +i) == (uint8_t *) 0x08FF)
-//			*(p_sram+i) = 0x22;
-
+		/* induzir erro */
+		/*
+		if((p_sram +i) == (uint8_t *) 0x08FF)
+			*(p_sram+i) = 0x22;
+		*/
 	}
 
-	// Test phase 2: read ZERO, write ONE. UP
+	/* Test phase 2: read ZERO, write ONE. UP */
 	for (i = 0; i < size; i++) {
 		if (*(p_sram + i) != ZERO)
 			return 1;
@@ -60,7 +61,7 @@ int marchCminus(register volatile uint8_t * p_sram, register volatile uint8_t * 
 		*(p_sram + i) = ONE;
 	}
 
-	// Test phase 3: read ONE, write ZERO. UP.
+	/* Test phase 3: read ONE, write ZERO. UP. */
 	for (i = 0; i < size; i++) {
 		if (*(p_sram + i) != ONE)
 			return 1;
@@ -68,7 +69,7 @@ int marchCminus(register volatile uint8_t * p_sram, register volatile uint8_t * 
 		*(p_sram + i) = ZERO;
 	}
 
-	// Test phase 4: read ZERO, write ONE. DOWN
+	/* Test phase 4: read ZERO, write ONE. DOWN */
 	for (i = size; i > 0; i--) {
 		if (*(p_sram + i - 1) != ZERO)
 			return 1;
@@ -76,7 +77,7 @@ int marchCminus(register volatile uint8_t * p_sram, register volatile uint8_t * 
 		*(p_sram + i - 1) = ONE;
 	}
 
-	// Test phase 5: read ONE, write ZERO. DOWN
+	/* Test phase 5: read ONE, write ZERO. DOWN */
 	for (i = size; i > 0; i--) {
 		if (*(p_sram + i - 1) != ONE)
 			return 1;
@@ -84,12 +85,13 @@ int marchCminus(register volatile uint8_t * p_sram, register volatile uint8_t * 
 		*(p_sram + i - 1) = ZERO;
 	}
 
-	//Test phase 6: read ZERO. UP
+	/* Test phase 6: read ZERO. UP */
 	for (i = 0; i < size; i++) {
 		if (*(p_sram + i) != ZERO)
 			return 1;
 	}
-	// Restore content of the section: copy from buffer, unless buffer is tested
+
+	/* Restore content of the section: copy from buffer, unless buffer is tested */
 	if (p_buffer != p_sram)
 		for (i = 0; i < size; i++)
 			*(p_sram + i) = *(p_buffer + i);
@@ -159,7 +161,7 @@ uint8_t memory_test_flash_offline(void){
  * Não usadas
  ****************************************************************************/
 uint8_t memory_test_SRAM(void){
-	//uint8_t* base_addrs = (uint8_t*) 0x0100;
+	/* uint8_t* base_addrs = (uint8_t*) 0x0100; */
 
 	uint8_t base_addrs[2100];
 
@@ -271,55 +273,60 @@ uint8_t read_all_zero(uint8_t* base_addr, uint8_t up_or_down, uint16_t nBytes) {
 }
 
 void write_all_zero(uint8_t* base_addr, uint8_t up_or_down, uint16_t nBytes) {
-	//uint8_t march[2048];
+	/* uint8_t march[2048]; */
 	int16_t i;
 
 	for (i = 0; i < 2048; i++){
 		base_addr[i] = ZERO;
 	}
 
-//	int16_t i;
-//
-//	switch (up_or_down) {
-//		case UP:
-//			for (i = 0; i <= (nBytes - 1); i++) {
-//				base_addr[i] = ZERO;
-//			}
-//			break;
-//
-//		case DOWN:
-//			for (i = (nBytes - 1); i >= 0; i--) {
-//				if((base_addr + 8*i) == &i){
-//					i = i+2;
-//					continue;
-//				}
-//				base_addr[i] = ZERO;
-//			}
-//			break;
-//	}
+/*
+	int16_t i;
+
+	switch (up_or_down) {
+		case UP:
+			for (i = 0; i <= (nBytes - 1); i++) {
+				base_addr[i] = ZERO;
+			}
+			break;
+
+		case DOWN:
+			for (i = (nBytes - 1); i >= 0; i--) {
+				if((base_addr + 8*i) == &i){
+					i = i+2;
+					continue;
+				}
+				base_addr[i] = ZERO;
+			}
+			break;
+	}
+*/
 
 	return;
 }
 
-//void write_all_zero(/*uint8_t* base_addr, */uint8_t up_or_down/*, uint16_t nBytes*/) {
-//	uint8_t* base_addr;
-//
-//	switch (up_or_down) {
-//		case UP:
-//			for (base_addr = (uint8_t*) 0x0100; base_addr < (uint8_t*) 0x08FF; base_addr++) {
-//				*base_addr = ZERO;
-//			}
-//			break;
-//
-//		case DOWN:
-//			for (base_addr = 0x0800; base_addr >= (uint8_t*) 0x010A; base_addr--) {
-//				if(base_addr == &base_addr){
-//					continue;
-//				}
-//				*base_addr = ZERO;
-//			}
-//			break;
-//	}
-//
-//	return;
-//}
+
+/*
+void write_all_zero(uint8_t* base_addr, uint8_t up_or_down, uint16_t nBytes) {
+	uint8_t* base_addr;
+
+	switch (up_or_down) {
+		case UP:
+			for (base_addr = (uint8_t*) 0x0100; base_addr < (uint8_t*) 0x08FF; base_addr++) {
+				*base_addr = ZERO;
+			}
+			break;
+
+		case DOWN:
+			for (base_addr = 0x0800; base_addr >= (uint8_t*) 0x010A; base_addr--) {
+				if(base_addr == &base_addr){
+					continue;
+				}
+				*base_addr = ZERO;
+			}
+			break;
+	}
+
+	return;
+}*/
+

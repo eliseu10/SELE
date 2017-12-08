@@ -20,16 +20,16 @@ void init_timer1(void) {
 	OCR1A = 16000;
 
 	TCCR1B |= (1 << WGM12);
-	// Mode 4, CTC on OCR1A
+	/* Mode 4, CTC on OCR1A */
 
 	TIMSK1 |= (1 << OCIE1A);
-	//Set interrupt on compare match
+	/* Set interrupt on compare match */
 
 	TCCR1B |= (1 << CS10);
-	//start the timer
+	/* start the timer */
 
 	sei();
-	// enable interrupts
+	/* enable interrupts */
 }
 
 /*
@@ -45,7 +45,7 @@ ISR(TIMER1_COMPA_vect) {
 	}
 
 	if (COMMDEATH <= watchdog) {
-		//reset_watchdog();
+		/* reset_watchdog(); */
 		watchdog_flag = 1;
 	}
 
@@ -107,7 +107,7 @@ void send_byte(char byte) {
 	_delay_us(30);
 
 	/* Espera que UDR0 esteja vazio */
-	while ((UCSR0A & (1 << UDRE0)) == 0){
+	while (0 == (UCSR0A & (1 << UDRE0))){
 		if (watchdog_flag){
 			return;
 		}
@@ -120,7 +120,7 @@ void send_byte(char byte) {
 	UCSR0A |= (1 << TXC0);
 
 	/* Utilizar TXC0 para esperar que seja tudo enviado */
-	while ((UCSR0A & (1 << TXC0)) == 0){
+	while (0 == (UCSR0A & (1 << TXC0))){
 		if (watchdog_flag){
 			return;
 		}
@@ -139,7 +139,7 @@ char get_byte(void) {
 	set_driver(READ);
 
 	/* Espera que RXC0 tenha la alguma coisa */
-	while ((UCSR0A & (1 << RXC0)) == 0){
+	while (0 == (UCSR0A & (1 << RXC0))){
 		if (watchdog_flag){
 			return 0x00;
 		}
@@ -155,7 +155,7 @@ char get_byte(void) {
 int check_addr(uint8_t byte) {
 	/* (verifica se e um addr) and (corresponde ao slave) */
 
-	if (byte == SLAVEADDR) {
+	if (SLAVEADDR == byte) {
 		/*Desativar modo multiprocessador*/
 		clear_multiprocessor_bit();
 		return 1;

@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
 	init_timer1();
 	init_timer0();
 
-//	init_interrupts_buttons();
+	/* init_interrupts_buttons(); */
 
 	memory_test();
 
@@ -150,18 +150,18 @@ int main(int argc, char **argv) {
  */
 void init_timer0(void) {
 
-    // Set the Timer Mode to CTC
+    /* Set the Timer Mode to CTC */
     TCCR0A |= (1 << WGM01);
 
-    // Set the value that you want to count to
+    /* Set the value that you want to count to */
     OCR0A = 250;
 
-    TIMSK0 |= (1 << OCIE0A);    //Set the ISR COMPA vect
+    TIMSK0 |= (1 << OCIE0A);    /* Set the ISR COMPA vect */
 
     TCCR0B |= (1 << CS01) | (1 << CS00);
-    // set prescaler to 64 and start the timer
+    /* set prescaler to 64 and start the timer */
 
-    sei();         //enable interrupts
+    sei();         /* enable interrupts */
 
     /*
      * Interrupção a cada 1ms
@@ -181,7 +181,7 @@ ISR(TIMER0_COMPA_vect) {
 
 	if (timer0 >= READ_BUTTONS_PERIOD) {
 		if (!(PIND & (1 << PD2))) {
-			//entrou
+			/* entrou */
 			if (last_button_in) {
 				cont++;
 				last_button_in = 0;
@@ -191,7 +191,7 @@ ISR(TIMER0_COMPA_vect) {
 		}
 
 		if (!(PIND & (1 << PD3))) {
-			//saiu
+			/* saiu */
 			if (last_button_out) {
 				cont--;
 				last_button_out = 0;
@@ -528,7 +528,7 @@ void check_master_state(uint8_t byte) {
 void init_safe_state(void) {
 
 	TIMSK0 &= ~(1 << OCIE0A);
-	//TCCR0B = 0;
+	/* TCCR0B = 0; */
 
 	EIMSK &= ~(1 << INT0); /* Turns on INT0 */
 	EIMSK &= ~(1 << INT1); /* Turns on INT1 */
