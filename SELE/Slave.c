@@ -37,15 +37,13 @@
  */
 #define READ_BUTTONS_PERIOD 10
 
-
 /*
  * Declaração e inicialização de variaveis globais
  */
 volatile uint8_t state_comms = STATEINITCOMM;
 volatile char master_state = STATEINITLED;
-volatile char cont = 0;
+volatile int8_t cont = 0;
 
-volatile uint8_t led_state = OFF;
 volatile uint16_t timer0 = 0;
 volatile uint8_t last_button_out = 1;
 volatile uint8_t last_button_in = 1;
@@ -130,8 +128,6 @@ int main(int argc, char **argv) {
 	init_timer1();
 	init_timer0();
 
-	/* init_interrupts_buttons(); */
-
 	memory_test();
 
 	test_led();
@@ -150,22 +146,23 @@ int main(int argc, char **argv) {
  */
 void init_timer0(void) {
 
-    /* Set the Timer Mode to CTC */
-    TCCR0A |= (1 << WGM01);
+	/* Set the Timer Mode to CTC */
+	TCCR0A |= (1 << WGM01);
 
-    /* Set the value that you want to count to */
-    OCR0A = 250;
+	/* Set the value that you want to count to */
+	OCR0A = 250;
 
-    TIMSK0 |= (1 << OCIE0A);    /* Set the ISR COMPA vect */
+	TIMSK0 |= (1 << OCIE0A); /* Set the ISR COMPA vect */
 
-    TCCR0B |= (1 << CS01) | (1 << CS00);
-    /* set prescaler to 64 and start the timer */
+	TCCR0B |= (1 << CS01) | (1 << CS00);
+	/* set prescaler to 64 and start the timer */
 
-    sei();         /* enable interrupts */
+	sei();
+	/* enable interrupts */
 
-    /*
-     * Interrupção a cada 1ms
-     */
+	/*
+	 * Interrupção a cada 1ms
+	 */
 }
 
 /*
@@ -175,7 +172,7 @@ void init_timer0(void) {
 ISR(TIMER0_COMPA_vect) {
 	timer0++;
 
-	if (timer0 == UINT16_MAX){
+	if (timer0 == UINT16_MAX) {
 		timer0 = 0;
 	}
 
@@ -209,19 +206,24 @@ ISR(TIMER0_COMPA_vect) {
 /*
  *Função de teste de memoria flash
  */
-void memory_test(void){
+void memory_test(void) {
 	uint8_t err = 0;
-	if (memory_test_flash_online()) {
+	cli();
+	if (!memory_test_flash_online()) {
+		sei();
 		set_led(YELLOW, ON);
 		err = 1;
 	}
-	if(memory_sram_test()){
+	if (!memory_sram_test()) {
+		sei();
 		set_led(RED, ON);
 		err = 1;
 	}
-	if(err){
-		while(1);
+	if (err) {
+		while (1);
 	}
+	sei();
+	return;
 }
 
 /*
@@ -269,6 +271,9 @@ void set_mosfet_led(uint8_t led, uint8_t set) {
  */
 void test_led(void) {
 
+	uint8_t led_yellow_state = OFF;
+	uint16_t rapido_lento = 500;
+
 	/* Forçar a saida a 0*/
 	PORTB &= ~(1 << PB0) & ~(1 << PB1);
 
@@ -282,26 +287,49 @@ void test_led(void) {
 	set_mosfet_led(RED, ON);
 
 	while (1) {
-		if (!get_led_state(GREEN)) {
-			set_led(YELLOW, ON);
-			while (!(500 < get_timer_time()))
-				;
-			reset_watchdog();
-			set_led(YELLOW, OFF);
-			while (!(500 < get_timer_time()))
-				;
-			reset_watchdog();
+		if (!get_led_state(GREEN) && get_led_state(RED)) {
+			if ((500 == get_timer_time())) {
+				if (ON == led_yellow_state) {
+					set_led(YELLOW, OFF);
+					led_yellow_state = OFF;
+					reset_watchdog();
+				} else {
+					set_led(YELLOW, ON);
+					led_yellow_state = ON;
+					reset_watchdog();
+				}
+			}
+		} else if (!get_led_state(RED) && get_led_state(GREEN)) {
+			if ((1000 == get_timer_time())) {
+				if (ON == led_yellow_state) {
+					set_led(YELLOW, OFF);
+					led_yellow_state = OFF;
+					reset_watchdog();
+				} else {
+					set_led(YELLOW, ON);
+					led_yellow_state = ON;
+					reset_watchdog();
+				}
+			}
+		} else if (!get_led_state(RED) && !get_led_state(GREEN)) {
+			if (get_timer_time() == rapido_lento) {
+				if (ON == led_yellow_state) {
+					set_led(YELLOW, OFF);
+					led_yellow_state = OFF;
+					reset_watchdog();
+				} else {
+					set_led(YELLOW, ON);
+					led_yellow_state = ON;
+					reset_watchdog();
+					if (500 == rapido_lento) {
+						rapido_lento = 1000;
+					} else {
+						rapido_lento = 500;
+					}
+				}
+			}
 		}
-		if (!get_led_state(RED)) {
-			set_led(YELLOW, ON);
-			while (!(1000 < get_timer_time()))
-				;
-			reset_watchdog();
-			set_led(YELLOW, OFF);
-			while (!(1000 < get_timer_time()))
-				;
-			reset_watchdog();
-		}
+
 		if (get_led_state(RED) && get_led_state(GREEN)) {
 			init_io();
 			return;
@@ -315,6 +343,8 @@ void test_led(void) {
  * Maquina de estados responsavel pelo funcionamento das comunicações entre o mestre e o slave
  */
 void state_machine_comunications(void) {
+
+	uint8_t led_red_state = OFF;
 
 	/* integer 8 bits */
 	char byte = 0;
@@ -396,21 +426,19 @@ void state_machine_comunications(void) {
 
 	case STATESAFE:
 
-		init_safe_state();
-
 		set_led(GREEN, OFF);
 
 		reset_watchdog();
 
 		while (1) {
 			if ((500 == get_timer_time())) {
-				if (ON == led_state) {
+				if (ON == led_red_state) {
 					set_led(RED, OFF);
-					led_state = OFF;
+					led_red_state = OFF;
 					reset_watchdog();
 				} else {
 					set_led(RED, ON);
-					led_state = ON;
+					led_red_state = ON;
 					reset_watchdog();
 				}
 			}
@@ -520,44 +548,5 @@ void check_master_state(uint8_t byte) {
 	} else {
 		master_state = 0xA0;
 	}
-}
-
-/*
- * Desativa interrupções externas
- */
-void init_safe_state(void) {
-
-	TIMSK0 &= ~(1 << OCIE0A);
-	/* TCCR0B = 0; */
-
-	EIMSK &= ~(1 << INT0); /* Turns on INT0 */
-	EIMSK &= ~(1 << INT1); /* Turns on INT1 */
-}
-
-/*
- * Inicializa as interrupções externas
- */
-void init_interrupts_buttons(void) {
-
-	/* set INT0 and INT1 to trigger on FE */
-	EICRA |= (0b10 << ISC00);
-	EICRA |= (0b10 << ISC10);
-
-	EIMSK |= (1 << INT0); /* Turns on INT0 */
-	EIMSK |= (1 << INT1); /* Turns on INT1 */
-
-	sei();
-}
-
-/* Interrupção para detetar entrada */
-ISR (INT0_vect) {
-	cont++;
-	return;
-}
-
-/* Interrupção para detetar saida */
-ISR (INT1_vect) {
-	cont--;
-	return;
 }
 

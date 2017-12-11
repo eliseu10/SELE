@@ -109,6 +109,7 @@ void send_byte(char byte) {
 	/* Espera que UDR0 esteja vazio */
 	while (0 == (UCSR0A & (1 << UDRE0))){
 		if (watchdog_flag){
+			set_driver(READ);
 			return;
 		}
 	}
@@ -122,6 +123,7 @@ void send_byte(char byte) {
 	/* Utilizar TXC0 para esperar que seja tudo enviado */
 	while (0 == (UCSR0A & (1 << TXC0))){
 		if (watchdog_flag){
+			set_driver(READ);
 			return;
 		}
 	}
@@ -152,7 +154,7 @@ char get_byte(void) {
  * Verifica se o endereço recebido é o endereço do SLAVE
  * Se sim retorna 1 senão retorna 0
  */
-int check_addr(uint8_t byte) {
+uint8_t check_addr(uint8_t byte) {
 	/* (verifica se e um addr) and (corresponde ao slave) */
 
 	if (SLAVEADDR == byte) {

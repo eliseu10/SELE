@@ -10,6 +10,10 @@
  */
 #define COMMDEATH 5000
 
+/*
+ *  Endereço do slave a ser programado (Mudar isto para cada slave)
+ */
+#define SLAVEADDR 0x02
 
 #define F_CPU 16000000UL
 #define	baud 57600  /* baud rate */
@@ -21,10 +25,7 @@
 #define READ 0
 #define WRITE 1
 
-/*
- *  Endereço do slave a ser programado (Mudar isto para cada slave)
- */
-#define SLAVEADDR 0x02
+
 
 /*
  * Faz reset ao contador watchdog das comunicações
@@ -76,7 +77,7 @@ char get_byte(void);
  * Verifica se o endereço recebido é o endereço do SLAVE
  * Se sim retorna 1 senã retorna 0
  */
-int check_addr(uint8_t byte);
+uint8_t check_addr(uint8_t byte);
 
 /*
  * Coloca o driver do RS485 em modo de escrita (WRITE) ou em modo de leitura (READ)
