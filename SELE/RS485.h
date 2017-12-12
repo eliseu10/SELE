@@ -1,7 +1,6 @@
 #ifndef RS485_H_
 #define RS485_H_
 
-#include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
@@ -24,8 +23,6 @@
  */
 #define READ 0
 #define WRITE 1
-
-
 
 /*
  * Faz reset ao contador watchdog das comunicações
@@ -66,12 +63,12 @@ void init_RS485(void);
 /*
  * Envia um byte atravez da comunicação assincrona
  */
-void send_byte(char byte);
+void send_byte(uint8_t byte);
 
 /*
  * Retorna um byte recebido atravez do RS485
  */
-char get_byte(void);
+uint8_t get_byte(void);
 
 /*
  * Verifica se o endereço recebido é o endereço do SLAVE

@@ -1,6 +1,4 @@
 #include "RS485.h"
-#include <util/delay.h>
-#include <avr/interrupt.h>
 #include "memory_test.h"
 
 /*
@@ -40,11 +38,10 @@
 /*
  * Declaração e inicialização de variaveis globais
  */
-volatile uint8_t state_comms = STATEINITCOMM;
-volatile char master_state = STATEINITLED;
+uint8_t state_comms = STATEINITCOMM;
+uint8_t master_state = STATEINITLED;
 volatile int8_t cont = 0;
-
-volatile uint16_t timer0 = 0;
+volatile uint16_t timer = 0;
 volatile uint8_t last_button_out = 1;
 volatile uint8_t last_button_in = 1;
 /**********************************************************************
@@ -55,16 +52,6 @@ volatile uint8_t last_button_in = 1;
  * Inicializa os inputs e os outputs
  */
 void init_io(void);
-
-/*
- * Inicializa as interrupções externas
- */
-void init_interrupts_buttons(void);
-
-/*
- * Desativa as interrupções externas
- */
-void init_safe_state(void);
 
 /*
  * Liga e desliga os LEDs
@@ -138,6 +125,7 @@ int main(int argc, char **argv) {
 		state_machine_comunications();
 	}
 
+	return 0;
 }
 
 /*
@@ -163,6 +151,7 @@ void init_timer0(void) {
 	/*
 	 * Interrupção a cada 1ms
 	 */
+	return;
 }
 
 /*
@@ -170,16 +159,16 @@ void init_timer0(void) {
  * a cada 1ms
  */
 ISR(TIMER0_COMPA_vect) {
-	timer0++;
+	timer++;
 
-	if (timer0 == UINT16_MAX) {
-		timer0 = 0;
+	if (timer == UINT16_MAX) {
+		timer = 0;
 	}
 
-	if (timer0 >= READ_BUTTONS_PERIOD) {
+	if (timer >= READ_BUTTONS_PERIOD) {
 		if (!(PIND & (1 << PD2))) {
 			/* entrou */
-			if (last_button_in) {
+			if (last_button_in != 0) {
 				cont++;
 				last_button_in = 0;
 			}
@@ -189,7 +178,7 @@ ISR(TIMER0_COMPA_vect) {
 
 		if (!(PIND & (1 << PD3))) {
 			/* saiu */
-			if (last_button_out) {
+			if (last_button_out != 0) {
 				cont--;
 				last_button_out = 0;
 			}
@@ -197,7 +186,7 @@ ISR(TIMER0_COMPA_vect) {
 			last_button_out = 1;
 		}
 
-		timer0 = 0;
+		timer = 0;
 	}
 
 	return;
@@ -209,18 +198,20 @@ ISR(TIMER0_COMPA_vect) {
 void memory_test(void) {
 	uint8_t err = 0;
 	cli();
-	if (!memory_test_flash_online()) {
+	if (0 == memory_test_flash_online()) {
 		sei();
 		set_led(YELLOW, ON);
 		err = 1;
 	}
-	if (!memory_sram_test()) {
+	if (0 == memory_sram_test()) {
 		sei();
 		set_led(RED, ON);
 		err = 1;
 	}
-	if (err) {
-		while (1);
+	if (err != 0) {
+		while (1) {
+			; /* Bolqueia o programa e não faz mais nada */
+		}
 	}
 	sei();
 	return;
@@ -263,6 +254,7 @@ void set_mosfet_led(uint8_t led, uint8_t set) {
 	} else if ((GREEN == led) && (OFF == set)) {
 		PORTD = PORTD & ~(1 << PD4);
 	}
+	return;
 }
 
 /*
@@ -287,7 +279,7 @@ void test_led(void) {
 	set_mosfet_led(RED, ON);
 
 	while (1) {
-		if (!get_led_state(GREEN) && get_led_state(RED)) {
+		if ((0 == get_led_state(GREEN)) && ( 0 != get_led_state(RED))) {
 			if ((500 == get_timer_time())) {
 				if (ON == led_yellow_state) {
 					set_led(YELLOW, OFF);
@@ -299,7 +291,7 @@ void test_led(void) {
 					reset_watchdog();
 				}
 			}
-		} else if (!get_led_state(RED) && get_led_state(GREEN)) {
+		} else if ((0 == get_led_state(RED)) && ( 0 != get_led_state(GREEN))) {
 			if ((1000 == get_timer_time())) {
 				if (ON == led_yellow_state) {
 					set_led(YELLOW, OFF);
@@ -311,7 +303,7 @@ void test_led(void) {
 					reset_watchdog();
 				}
 			}
-		} else if (!get_led_state(RED) && !get_led_state(GREEN)) {
+		} else if ((0 == get_led_state(RED)) && (0 == get_led_state(GREEN))) {
 			if (get_timer_time() == rapido_lento) {
 				if (ON == led_yellow_state) {
 					set_led(YELLOW, OFF);
@@ -328,9 +320,11 @@ void test_led(void) {
 					}
 				}
 			}
+		} else {
+			;
 		}
 
-		if (get_led_state(RED) && get_led_state(GREEN)) {
+		if ((0 != get_led_state(RED)) && (0 != get_led_state(GREEN))) {
 			init_io();
 			return;
 		}
@@ -347,7 +341,7 @@ void state_machine_comunications(void) {
 	uint8_t led_red_state = OFF;
 
 	/* integer 8 bits */
-	char byte = 0;
+	uint8_t byte = 0;
 
 	switch (state_comms) {
 
@@ -357,11 +351,11 @@ void state_machine_comunications(void) {
 
 		byte = get_byte();
 
-		if (get_watchdog_flag()) {
+		if (0 != get_watchdog_flag()) {
 
 			state_comms = STATESAFE;
 
-		} else if (check_addr(byte)) {
+		} else if (0 != check_addr(byte)) {
 
 			reset_watchdog();
 			state_comms = STATESENDCOUNT;
@@ -378,7 +372,7 @@ void state_machine_comunications(void) {
 
 		send_byte(cont);
 
-		if (get_watchdog_flag()) {
+		if (0 != get_watchdog_flag()) {
 
 			state_comms = STATESAFE;
 
@@ -394,7 +388,7 @@ void state_machine_comunications(void) {
 
 		byte = get_byte();
 
-		if (get_watchdog_flag()) {
+		if (0 != get_watchdog_flag()) {
 
 			state_comms = STATESAFE;
 
@@ -413,7 +407,7 @@ void state_machine_comunications(void) {
 
 		send_byte(master_state);
 
-		if (get_watchdog_flag()) {
+		if (0 != get_watchdog_flag()) {
 
 			state_comms = STATESAFE;
 
@@ -452,7 +446,7 @@ void state_machine_comunications(void) {
 
 		break;
 	}
-
+	return;
 }
 
 /*
@@ -460,15 +454,14 @@ void state_machine_comunications(void) {
  */
 void test_communication_master(void) {
 
-	char byte;
+	uint8_t byte;
 
 	do {
 		set_multiprocessor_bit();
 
 		byte = get_byte();
 
-		if (get_watchdog_flag()) {
-
+		if (0 != get_watchdog_flag()) {
 			state_comms = STATESAFE;
 			break;
 		}
@@ -509,6 +502,8 @@ void init_io(void) {
 	/* turn On the Pull-up dos botões*/
 	PORTD |= (1 << PD3);
 	PORTD |= (1 << PD2);
+
+	return;
 }
 
 /*
@@ -530,6 +525,7 @@ void set_led(int color, int set) {
 	} else if ((YELLOW == color) && (ON == set)) {
 		PORTD = PORTD & ~(1 << PD6);
 	}
+	return;
 }
 
 /*
@@ -548,5 +544,6 @@ void check_master_state(uint8_t byte) {
 	} else {
 		master_state = 0xA0;
 	}
+	return;
 }
 

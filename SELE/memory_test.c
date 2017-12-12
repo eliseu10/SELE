@@ -1,11 +1,13 @@
 #include "memory_test.h"
 
+#define SRAM_ERROR 0
+
 uint16_t EEMEM sign_eeprom;
 uint16_t EEMEM hash_flash_online;
 uint8_t EEMEM hash_flash_offline[16];
 uint16_t EEMEM bytes;
 
-static uint8_t buffer[SEC_SIZE]/* __attribute__ ((section (".classb_sram_buffer")))*/;
+static uint8_t buffer[SEC_SIZE]/* __attribute__ ((section (".sram_buffer")))*/;
 
 /*
  * Return 0 se falha 1 se passa
@@ -15,7 +17,7 @@ uint8_t memory_sram_test() {
 	static uint8_t current_section = 0;
 
 	for (current_section = 0; current_section < NSECS; current_section++) {
-		if (!marchCminus((uint8_t *) INTERNAL_SRAM_START + current_section * SEC_SIZE, buffer, SEC_SIZE)) {
+		if (0 == marchCminus((uint8_t *) INTERNAL_SRAM_START + current_section * SEC_SIZE, buffer, SEC_SIZE)) {
 			return 0;
 		}
 	}
@@ -55,10 +57,11 @@ uint8_t marchCminus(register volatile uint8_t * p_sram, register volatile uint8_
 
 		/* induzir erro */
 
-//		 if ((p_sram + i) == (uint8_t *)0x0800) {
-//			*(p_sram + i) = 0x22;
-//		}
-
+#if SRAM_ERROR
+		 if ((p_sram + i) == (uint8_t *)0x0800) {
+			*(p_sram + i) = 0x22;
+		}
+#endif
 	}
 
 	/* Test phase 2: read ZERO, write ONE. UP */
@@ -110,12 +113,11 @@ uint8_t marchCminus(register volatile uint8_t * p_sram, register volatile uint8_
 			*(p_sram + i) = *(p_buffer + i);
 		}
 	}
-	if(err) {
+	if (err == 1) {
 		return 0;
 	}
 	return 1;
 }
-
 
 /*
  * Retorna 1 se passa 0 se falha

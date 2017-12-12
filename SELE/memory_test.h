@@ -1,7 +1,6 @@
 #ifndef MEMORY_TEST_H_
 #define MEMORY_TEST_H_
 
-#include <avr/io.h>
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 
@@ -22,7 +21,7 @@
 /* The size of each segment in bytes */
 #define SEC_SIZE (INTERNAL_SRAM_SIZE / NSECS)
 
-uint8_t memory_sram_test( void );
+uint8_t memory_sram_test(void);
 
 uint8_t marchCminus(register volatile uint8_t * p_sram, register volatile uint8_t * p_buffer, register uint16_t size);
 

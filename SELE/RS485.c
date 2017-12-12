@@ -10,7 +10,6 @@ volatile uint16_t watchdog = 0;
  * Inicializa o timer0
  */
 
-
 /*
  * Inicializa o timer do Watchdog
  * Utiliza o timer1
@@ -30,6 +29,7 @@ void init_timer1(void) {
 
 	sei();
 	/* enable interrupts */
+	return;
 }
 
 /*
@@ -40,7 +40,7 @@ void init_timer1(void) {
 ISR(TIMER1_COMPA_vect) {
 	watchdog++;
 
-	if (watchdog == 65530){
+	if (watchdog == 65530) {
 		reset_watchdog();
 	}
 
@@ -55,7 +55,7 @@ ISR(TIMER1_COMPA_vect) {
 /*
  * Retorna o vaor do watchdog
  */
-uint16_t get_timer_time(void){
+uint16_t get_timer_time(void) {
 	return watchdog;
 }
 
@@ -63,15 +63,17 @@ uint16_t get_timer_time(void){
  * Retorna o valor daflag do watchdog
  * A flag do watchdog e colocada a 1 quando o watch dog passa o valor em COMMDEATH
  */
-uint8_t get_watchdog_flag(void){
+uint8_t get_watchdog_flag(void) {
 	return watchdog_flag;
 }
 
 /*
  * Faz reset ao contador watchdog das comunicações
  */
-void reset_watchdog(void){
+void reset_watchdog(void) {
 	watchdog = 0;
+
+	return;
 }
 
 /*
@@ -90,25 +92,27 @@ void init_RS485(void) {
 
 	/* Definir formato da trama */
 	UCSR0C = (7 << UCSZ00) /* 9 data bits */
-			| (0 << UPM00) /* no parity */
-			| (0 << USBS0) /* 1 stop bit */
-			| (0 << UMSEL00) | (0 << UMSEL01); /* comunicacao assincrona */
+	| (0 << UPM00) /* no parity */
+	| (0 << USBS0) /* 1 stop bit */
+	| (0 << UMSEL00) | (0 << UMSEL01); /* comunicacao assincrona */
 
 	/* Ativar emissao e rececao */
 	UCSR0B = (1 << TXEN0) | (1 << RXEN0) | (1 << UCSZ02);
+
+	return;
 }
 
 /*
  * Envia um byte atravez da comunicação assincrona
  */
-void send_byte(char byte) {
+void send_byte(uint8_t byte) {
 
 	set_driver(WRITE);
 	_delay_us(30);
 
 	/* Espera que UDR0 esteja vazio */
-	while (0 == (UCSR0A & (1 << UDRE0))){
-		if (watchdog_flag){
+	while (0 == (UCSR0A & (1 << UDRE0))) {
+		if (0  != watchdog_flag) {
 			set_driver(READ);
 			return;
 		}
@@ -121,8 +125,8 @@ void send_byte(char byte) {
 	UCSR0A |= (1 << TXC0);
 
 	/* Utilizar TXC0 para esperar que seja tudo enviado */
-	while (0 == (UCSR0A & (1 << TXC0))){
-		if (watchdog_flag){
+	while (0 == (UCSR0A & (1 << TXC0))) {
+		if (0 != watchdog_flag) {
 			set_driver(READ);
 			return;
 		}
@@ -136,13 +140,13 @@ void send_byte(char byte) {
 /*
  * Retorna um byte recebido atravez do RS485
  */
-char get_byte(void) {
+uint8_t get_byte(void) {
 
 	set_driver(READ);
 
 	/* Espera que RXC0 tenha la alguma coisa */
-	while (0 == (UCSR0A & (1 << RXC0))){
-		if (watchdog_flag){
+	while (0 == (UCSR0A & (1 << RXC0))) {
+		if (0 != watchdog_flag) {
 			return 0x00;
 		}
 	}
@@ -161,29 +165,25 @@ uint8_t check_addr(uint8_t byte) {
 		/*Desativar modo multiprocessador*/
 		clear_multiprocessor_bit();
 		return 1;
-	} else {
-		return 0;
 	}
+
+	return 0;
 }
 
 /*
  * Coloca a 1 o bit do modo multiprocessador
  */
-void set_multiprocessor_bit(void){
-
+void set_multiprocessor_bit(void) {
 	UCSR0A |= (1 << MPCM0);
 	return;
-
 }
 
 /*
  * Coloca a 0 o bit do modo multiprocessador para o desativar
  */
-void clear_multiprocessor_bit(void){
-
+void clear_multiprocessor_bit(void) {
 	UCSR0A &= ~(1 << MPCM0);
 	return;
-
 }
 
 /*
@@ -195,4 +195,5 @@ void set_driver(int operation) {
 	} else if (WRITE == operation) {
 		PORTB = PORTB | (1 << 2);
 	}
+	return;
 }
