@@ -199,16 +199,15 @@ void memory_test(void) {
 	uint8_t err = 0;
 	cli();
 	if (0 == memory_test_flash_online()) {
-		sei();
 		set_led(YELLOW, ON);
 		err = 1;
 	}
 	if (0 == memory_sram_test()) {
-		sei();
 		set_led(RED, ON);
 		err = 1;
 	}
 	if (err != 0) {
+		sei();
 		while (1) {
 			; /* Bolqueia o programa e não faz mais nada */
 		}

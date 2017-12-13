@@ -4,7 +4,7 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 
-#define SIGNATURE 55550
+#define SIGNATURE 55551
 
 #define ONE 0xFF
 #define ZERO 0x00
