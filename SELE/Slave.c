@@ -116,11 +116,6 @@ int main(int argc, char **argv) {
 	init_timer1();
 	init_timer0();
 
-
-	while(1000 > get_timer_time()) {
-		; /*Esperar que passe 1 segundo para os condensadores carregarem */
-	}
-
 	init_RS485();
 
 	memory_test();
