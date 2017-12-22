@@ -44,6 +44,8 @@ volatile int8_t cont = 0;
 volatile uint16_t timer = 0;
 volatile uint8_t last_button_out = 1;
 volatile uint8_t last_button_in = 1;
+
+
 /**********************************************************************
  *               Declaração de funções utilizadas                     *
  **********************************************************************/
@@ -95,7 +97,7 @@ uint8_t get_led_state(uint8_t led);
 void set_mosfet_led(uint8_t led, uint8_t set);
 
 /*
- *
+ *Função para teste de memória sram de flash
  */
 void memory_test(void);
 
@@ -110,10 +112,16 @@ void init_timer0(void);
 
 int main(int argc, char **argv) {
 
-	init_RS485();
 	init_io();
 	init_timer1();
 	init_timer0();
+
+
+	while(1000 > get_timer_time()) {
+		; /*Esperar que passe 1 segundo para os condensadores carregarem */
+	}
+
+	init_RS485();
 
 	memory_test();
 
@@ -193,22 +201,21 @@ ISR(TIMER0_COMPA_vect) {
 }
 
 /*
- *Função de teste de memoria flash
+ *Função de teste de memoria flash e sram
  */
 void memory_test(void) {
 	uint8_t err = 0;
 	cli();
 	if (0 == memory_test_flash_online()) {
-		sei();
 		set_led(YELLOW, ON);
 		err = 1;
 	}
 	if (0 == memory_sram_test()) {
-		sei();
 		set_led(RED, ON);
 		err = 1;
 	}
 	if (err != 0) {
+		sei();
 		while (1) {
 			; /* Bolqueia o programa e não faz mais nada */
 		}
@@ -339,8 +346,6 @@ void test_led(void) {
 void state_machine_comunications(void) {
 
 	uint8_t led_red_state = OFF;
-
-	/* integer 8 bits */
 	uint8_t byte = 0;
 
 	switch (state_comms) {
@@ -348,24 +353,16 @@ void state_machine_comunications(void) {
 	case STATEINITCOMM:
 
 		set_multiprocessor_bit();
-
 		byte = get_byte();
 
 		if (0 != get_watchdog_flag()) {
-
 			state_comms = STATESAFE;
-
 		} else if (0 != check_addr(byte)) {
-
 			reset_watchdog();
 			state_comms = STATESENDCOUNT;
-
 		} else {
-
 			state_comms = STATEINITCOMM;
-
 		}
-
 		break;
 
 	case STATESENDCOUNT:
@@ -373,15 +370,10 @@ void state_machine_comunications(void) {
 		send_byte(cont);
 
 		if (0 != get_watchdog_flag()) {
-
 			state_comms = STATESAFE;
-
 		} else {
-
 			state_comms = STATERECEIVESTATE;
-
 		}
-
 		break;
 
 	case STATERECEIVESTATE:
@@ -389,18 +381,12 @@ void state_machine_comunications(void) {
 		byte = get_byte();
 
 		if (0 != get_watchdog_flag()) {
-
 			state_comms = STATESAFE;
-
 		} else {
-
 			reset_watchdog();
-
 			check_master_state(byte);
-
 			state_comms = STATESENDACK;
 		}
-
 		break;
 
 	case STATESENDACK:
@@ -408,14 +394,10 @@ void state_machine_comunications(void) {
 		send_byte(master_state);
 
 		if (0 != get_watchdog_flag()) {
-
 			state_comms = STATESAFE;
-
 		} else {
-
 			state_comms = STATEINITCOMM;
 		}
-
 		break;
 
 	case STATESAFE:
@@ -437,14 +419,13 @@ void state_machine_comunications(void) {
 				}
 			}
 		}
-
 		break;
 
 	default:
 
 		state_comms = STATESAFE;
-
 		break;
+
 	}
 	return;
 }
@@ -485,7 +466,7 @@ void init_io(void) {
 	DDRB = 0b00000111;
 	DDRD |= (1 << PD6);
 
-	/* Colocar pinos para led's a 1 */
+	/* Colocar pinos para os led's a 1 */
 	PORTB |= (1 << PB0) | (1 << PB1);
 	PORTD |= (1 << PD6);
 

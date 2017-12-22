@@ -3,16 +3,12 @@
 
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <avr/eeprom.h>
 
 /*
  * Tempo a partir do qual que se considera que foi perdida a conecção com o mestre
  */
 #define COMMDEATH 5000
-
-/*
- *  Endereço do slave a ser programado (Mudar isto para cada slave)
- */
-#define SLAVEADDR 0x02
 
 #define F_CPU 16000000UL
 #define	baud 57600  /* baud rate */
@@ -23,6 +19,16 @@
  */
 #define READ 0
 #define WRITE 1
+
+/*
+ *Escreve um numero uint8_t pela porta de serie
+ */
+void print_value(uint8_t value);
+
+/*
+ *Função que faz um setup da addres do slave
+ */
+void setup_address(void);
 
 /*
  * Faz reset ao contador watchdog das comunicações

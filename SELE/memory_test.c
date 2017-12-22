@@ -7,7 +7,7 @@ uint16_t EEMEM hash_flash_online;
 uint8_t EEMEM hash_flash_offline[16];
 uint16_t EEMEM bytes;
 
-static uint8_t buffer[SEC_SIZE]/* __attribute__ ((section (".sram_buffer")))*/;
+static uint8_t buffer[SEC_SIZE] __attribute__((section (".buffer")));
 
 /*
  * Return 0 se falha 1 se passa

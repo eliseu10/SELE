@@ -1,15 +1,85 @@
 #include "RS485.h"
+#include "serial_port.h"
+#include <stdlib.h>
 
 /*
  * Watchdog timer e a flag
  */
 volatile uint8_t watchdog_flag = 0;
 volatile uint16_t watchdog = 0;
+uint8_t EEMEM address;
 
-/*
- * Inicializa o timer0
- */
+void print_value(uint8_t value){
 
+	char aux = '0';
+
+	if(9 >= value){
+
+		print_char(value + 48);
+		return;
+
+	}
+	else if(9 < value && 99 >= value){
+
+		aux = value / 10;
+		print_char(aux + 48);
+		aux = value % 10;
+		print_char(aux + 48);
+		return;
+
+	}
+	else if(99 < value){
+
+		aux = value / 100;
+		print_char(aux + 48);
+		aux = (value % 100) / 10;
+		print_char(aux + 48);
+		aux = value % 10;
+		print_char(aux + 48);
+		return;
+
+	}
+	else {
+		;
+	}
+
+	return;
+}
+
+void setup_address(void) {
+	/* se for feito reset e o botão de entrada estiver precionado entra em modo configuração */
+	uint8_t addr = 0;
+	char nAddr[5], *ptr;
+
+	if(!(PIND & (1 << PD2))){
+
+		init_USART();
+
+		addr = eeprom_read_byte(&address);
+
+		write_string("Address: ");
+		print_value(addr);
+		write_string("\r\n");
+
+		write_string("New Address [1, 255]: ");
+
+		while (0 == (read_string(nAddr))) {
+			;
+		}
+
+		addr = strtol(nAddr, &ptr, 10);
+
+		eeprom_update_byte(&address, addr);
+
+		addr = eeprom_read_byte(&address);
+		write_string("Address saved: ");
+		print_value(addr);
+		write_string("\r\n");
+
+	}
+
+	return;
+}
 /*
  * Inicializa o timer do Watchdog
  * Utiliza o timer1
@@ -85,6 +155,10 @@ void reset_watchdog(void) {
  * Rx/Tx
  */
 void init_RS485(void) {
+
+	/*Definir endereço*/
+	setup_address();
+
 	/* Definir baudrate */
 	UBRR0H = (uint8_t) (baudgen >> 8);
 	UBRR0L = (uint8_t) baudgen;
@@ -161,7 +235,7 @@ uint8_t get_byte(void) {
 uint8_t check_addr(uint8_t byte) {
 	/* (verifica se e um addr) and (corresponde ao slave) */
 
-	if (SLAVEADDR == byte) {
+	if (eeprom_read_byte(&address) == byte) {
 		/*Desativar modo multiprocessador*/
 		clear_multiprocessor_bit();
 		return 1;
