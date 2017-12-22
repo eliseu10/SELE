@@ -161,12 +161,12 @@ void init_timer0(void) {
 ISR(TIMER0_COMPA_vect) {
 	timer++;
 
-	if (timer == UINT16_MAX) {
+	if (UINT16_MAX == timer) {
 		timer = 0;
 	}
 
 	if (timer >= READ_BUTTONS_PERIOD) {
-		if (!(PIND & (1 << PD2))) {
+		if (0 == (PIND & (1 << PD2))) {
 			/* entrou */
 			if (last_button_in != 0) {
 				cont++;
@@ -176,7 +176,7 @@ ISR(TIMER0_COMPA_vect) {
 			last_button_in = 1;
 		}
 
-		if (!(PIND & (1 << PD3))) {
+		if (0 == (PIND & (1 << PD3))) {
 			/* saiu */
 			if (last_button_out != 0) {
 				cont--;

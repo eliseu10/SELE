@@ -40,7 +40,7 @@ void init_timer1(void) {
 ISR(TIMER1_COMPA_vect) {
 	watchdog++;
 
-	if (watchdog == 65530) {
+	if (65530 == watchdog) {
 		reset_watchdog();
 	}
 
