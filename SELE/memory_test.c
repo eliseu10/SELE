@@ -144,35 +144,3 @@ uint8_t memory_test_flash_online(void) {
 	return 1;
 
 }
-
-/*
- * retorna 1 se passa 0 se falha
- */
-uint8_t memory_test_flash_offline(void) {
-
-	uint8_t hash[16];
-
-	uint16_t i = 0;
-	uint16_t x = 0;
-	uint16_t n_bytes = eeprom_read_word(&bytes);
-
-	for (i = 0; i < 16; i++) {
-		hash[i] = 0;
-	}
-
-	for (i = 0; i < n_bytes; i++) {
-		hash[x] ^= pgm_read_byte(i);
-		x++;
-		if (x == 16) {
-			x = 0;
-		}
-	}
-
-	for (i = 0; i < 16; i++) {
-		if (hash[i] != eeprom_read_byte(hash_flash_offline + i)) {
-			return 0;
-		}
-	}
-
-	return 1;
-}

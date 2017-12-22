@@ -1,5 +1,9 @@
 #include "serial_port.h"
 
+/*
+ * Inicializaçao da comunicaçao via USART
+ * para o modo de configuração
+ */
 void init_USART(void) {
 
 	UBRR0 = baudgen; /*definir baudrate*/
@@ -13,6 +17,9 @@ void init_USART(void) {
 	return;
 }
 
+/*
+ * Envia um char pela porta serie
+ */
 void print_char(char c) {
 
 	/*espera que UDR0 esteja vazio;*/
@@ -25,6 +32,9 @@ void print_char(char c) {
 	return;
 }
 
+/*
+ * Recebe um char pela porta serie
+ */
 char get_char(void) {
 
 	/*espera que receba alguma coisa*/
@@ -35,6 +45,10 @@ char get_char(void) {
 	return UDR0;
 }
 
+/*
+ * Envia uma sequencia de chars pela porta serie
+ * utilizando a funçao print_char
+ */
 void write_string(char *str) {
 
 	while (*str != 0) {
@@ -45,6 +59,10 @@ void write_string(char *str) {
 	return;
 }
 
+/*
+ * Recebe uma sequencia de chars pela porta serie
+ * utilizando a funçao get_char
+ */
 uint8_t read_string(char *c) {
 
 	char p = 0;

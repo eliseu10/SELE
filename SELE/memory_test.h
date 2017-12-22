@@ -27,6 +27,4 @@ uint8_t marchCminus(register volatile uint8_t * p_sram, register volatile uint8_
 
 uint8_t memory_test_flash_online(void);
 
-uint8_t memory_test_offline(void);
-
 #endif /* MEMORY_TEST_H_ */

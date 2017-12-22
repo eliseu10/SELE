@@ -9,6 +9,10 @@ volatile uint8_t watchdog_flag = 0;
 volatile uint16_t watchdog = 0;
 uint8_t EEMEM address;
 
+/*
+ * Converte um uint8 para o codigo ASCII
+ * Imprime o valor utilizando o print_char
+ */
 void print_value(uint8_t value){
 
 	char aux = '0';
@@ -46,6 +50,9 @@ void print_value(uint8_t value){
 	return;
 }
 
+/*
+ *  Permite a configuração do endereço do slave através da consola
+ */
 void setup_address(void) {
 	/* se for feito reset e o botão de entrada estiver precionado entra em modo configuração */
 	uint8_t addr = 0;
